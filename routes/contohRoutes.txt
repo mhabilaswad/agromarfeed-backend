@@ -1,0 +1,10 @@
+Z ganti dengan nama model Huruf Besar
+f ganti dengan nama model Huruf Kecil
+
+const express = require('express');
+const router = express.Router();
+const ZController = require('../controllers/fController');
+
+router.post('/', ZController.createZ);
+
+module.exports = router;

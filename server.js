@@ -7,6 +7,10 @@ const dotenv = require('dotenv');
 dotenv.config();
 
 const userRoutes = require('./routes/userRoutes');
+const orderRoutes = require('./routes/orderRoutes');
+const artikelRoutes = require('./routes/artikelRoutes');
+const productRoutes = require('./routes/productRoutes');
+const productCompositionRoutes = require('./routes/productCompositionRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -17,6 +21,10 @@ app.use(express.json()); // Middleware untuk membaca body JSON
 
 // Routes
 app.use('/api/users', userRoutes);
+app.use('/api/orders', orderRoutes);
+app.use('/api/artikels', artikelRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/productCompositions', productCompositionRoutes);
 
 // Koneksi MongoDB
 mongoose.connect(process.env.MONGODB_URI, {

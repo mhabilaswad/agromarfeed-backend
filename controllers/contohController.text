@@ -1,0 +1,14 @@
+Z ganti dengan nama model Huruf Besar
+f ganti dengan nama model Huruf Kecil
+
+const Z = require('../models/Z');
+
+exports.createZ = async (req, res) => {
+  try {
+    const f = new Z(req.body);
+    await f.save();
+    res.status(201).json(f);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
