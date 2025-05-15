@@ -14,10 +14,12 @@ const artikelSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,  // Menggunakan tanggal saat ini jika tidak diatur
   },
-  penulis: {
-    type: String,
-    required: true,  // Penulis wajib ada
-  },
+  penulis: [
+    {
+      nama: { type: String, required: true },
+      avatar: { type: String, required: true },
+      role: { type: String },
+    }],
   gambar_sampul: {
     type: String,  // Menyimpan URL atau path gambar sampul
     required: true,  // Gambar sampul wajib ada
