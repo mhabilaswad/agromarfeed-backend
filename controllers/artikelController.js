@@ -9,3 +9,24 @@ exports.createArtikel = async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 };
+
+// GET Semua Artikel
+exports.getAllArtikel = async (req, res) => {
+  try {
+    const artikels = await Artikel.find();
+    res.status(200).json(artikels);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// GET Artikel by ID
+exports.getArtikelById = async (req, res) => {
+  try {
+    const artikel = await Artikel.findById(req.params.id);
+    if (!artikel) return res.status(404).json({ message: 'Artikel tidak ditemukan' });
+    res.status(200).json(artikel);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
