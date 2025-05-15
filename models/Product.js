@@ -1,33 +1,58 @@
 const mongoose = require('mongoose');
 
-const productSchema = new mongoose.Schema({
-  nama: {
+const weightSchema = new mongoose.Schema({
+  id: {
     type: String,
-    required: true,
+    required: true
   },
-  deskripsi: {
+  value: {
     type: String,
-    required: true,
+    required: true
   },
-  harga: {
+  price: {
     type: Number,
-    required: true,
-  },
-  stok: {
-    type: Number,
-    required: true,
-  },
-  gambar: {
-    type: String,
-  },
-  tersedia: {
-    type: Boolean,
-    default: true,
-  },
-  tanggal_dibuat: {
-    type: Date,
-    default: Date.now,
+    required: true
   }
+});
+
+const productSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true,
+  },
+  description: {
+    type: String,
+    required: true,
+  },
+  categoryOptions: {
+    type: String,
+    required: true,
+  },
+  limbahOptions: {
+    type: String,
+    required: true,
+  },
+  fisikOptions: {
+    type: String,
+    required: true,
+  },
+  price: {
+    type: Number,
+    required: true,
+  },
+  imageUrl: {
+    type: String,
+    required: true,
+  },
+  rating: {
+    type: Number,
+    default: 0,
+  },
+  stock: {
+    type: Number,
+    required: true,
+  },
+  weights: [weightSchema],
 }, { timestamps: true });
 
 module.exports = mongoose.model('Product', productSchema);
