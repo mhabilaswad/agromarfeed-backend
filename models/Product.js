@@ -52,6 +52,14 @@ const productSchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
+    isBestSeller: {
+    type: Boolean,
+    default: 0,
+  },
+    isSpecialOffer: {
+    type: Boolean,
+    default: 0,
+  },
   weights: [weightSchema],
 }, { timestamps: true });
 
