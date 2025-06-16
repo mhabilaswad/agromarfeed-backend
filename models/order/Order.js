@@ -7,6 +7,18 @@ const orderSchema = new mongoose.Schema({
     ref: 'User',  // Referensi ke model User
     required: true,  // user_id wajib ada
   },
+  order_item: [
+    {
+        product_id: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Product',
+            required: true
+        },
+        jumlah: Number,
+        harga_satuan: Number,
+        subtotal: Number,
+    },
+  ],
   tanggal_order: {
     type: Date,
     default: Date.now,  // Default menggunakan waktu saat ini
@@ -26,7 +38,7 @@ const orderSchema = new mongoose.Schema({
   },
   catatan: {
     type: String,
-    default: '',  // Jika tidak ada catatan, kosongkan string
+    default: '', 
   }
 }, { timestamps: true });  // Mencatat waktu pembuatan dan update secara otomatis
 

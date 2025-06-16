@@ -6,14 +6,17 @@ const productCompositionSchema = new mongoose.Schema({
     ref: 'Product',
     required: true,
   },
-  bahan: {
-    type: String,
-    required: true,
-  },
-  sumber_limbah: {
-    type: String,
-    required: true,
-  }
+  nutrisi: [
+    {
+      nama: { type: String, required: false },
+      persentase: { type: Number, required: false },
+    },
+  ],
+  manfaat: [
+    {
+      nama: { type: String, required: false }
+    },
+  ],
 }, { timestamps: true });
 
 module.exports = mongoose.model('ProductComposition', productCompositionSchema);

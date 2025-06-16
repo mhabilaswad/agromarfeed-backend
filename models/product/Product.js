@@ -16,6 +16,11 @@ const weightSchema = new mongoose.Schema({
 });
 
 const productSchema = new mongoose.Schema({
+  store_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Store', // asumsi nama model user kamu adalah 'Store'
+    required: true
+  },
   name: {
     type: String,
     required: true,
@@ -51,14 +56,6 @@ const productSchema = new mongoose.Schema({
   stock: {
     type: Number,
     required: true,
-  },
-    isBestSeller: {
-    type: Boolean,
-    default: 0,
-  },
-    isSpecialOffer: {
-    type: Boolean,
-    default: 0,
   },
   weights: [weightSchema],
 }, { timestamps: true });
