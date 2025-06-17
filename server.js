@@ -9,6 +9,8 @@ const cors = require('cors'); // Added for CORS
 
 const app = express();
 
+app.set('trust proxy', 1);
+
 // Middleware
 app.use(cors({ origin: process.env.FRONTEND_URL, credentials: true })); // Allow frontend origin
 app.use(express.json());
