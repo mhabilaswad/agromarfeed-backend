@@ -1,35 +1,5 @@
 const mongoose = require("mongoose");
 
-const userSchema = new mongoose.Schema({
-  name: { type: String, required: true },
-  email: { type: String, required: true, unique: true },
-  accounts: [
-    {
-      provider: { type: String, required: true },
-      providerAccountId: { type: String, required: true },
-      access_token: { type: String },
-      type: { type: String, default: "credentials" },
-    },
-  ],
-  detail: [
-    {
-      no_telpon: { type: String, required: false },
-      tanggal_lahir: { type: Date, required: false },
-      jenis_kelamin: {
-        type: String,
-        enum: ['Laki-laki', 'Perempuan'],
-        required: false
-      },
-    },
-  ],
-  alamat: [alamatSchema],
-  role: {
-    type: String,
-    enum: ['pembeli', 'admin', 'penjual'],
-    default: "pembeli"
-  },
-});
-
 const alamatSchema = new mongoose.Schema({
   nama: {
     type: String,
@@ -68,12 +38,42 @@ const alamatSchema = new mongoose.Schema({
     required: false,
   },
   catatan_kurir: {
-    type: Text,
+    type: String,
     required: false,
   },
   is_active: {
-    type: boolean,
+    type: Boolean,
     required: false,
+  },
+});
+
+const userSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  email: { type: String, required: true, unique: true },
+  accounts: [
+    {
+      provider: { type: String, required: true },
+      providerAccountId: { type: String, required: true },
+      access_token: { type: String },
+      type: { type: String, default: "credentials" },
+    },
+  ],
+  detail: [
+    {
+      no_telpon: { type: String, required: false },
+      tanggal_lahir: { type: Date, required: false },
+      jenis_kelamin: {
+        type: String,
+        enum: ['Laki-laki', 'Perempuan'],
+        required: false
+      },
+    },
+  ],
+  alamat: [alamatSchema],
+  role: {
+    type: String,
+    enum: ['pembeli', 'admin', 'penjual'],
+    default: "pembeli"
   },
 });
 
