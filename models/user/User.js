@@ -75,6 +75,17 @@ const userSchema = new mongoose.Schema({
     enum: ['pembeli', 'admin', 'penjual'],
     default: "pembeli"
   },
+isVerified: {
+  type: Boolean,
+  default: false,
+},
+emailVerificationToken: {
+  type: String,
+},
+emailVerificationTokenExpires: {
+  type: Date,
+},
+
 });
 
 // Add indexes
