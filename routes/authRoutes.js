@@ -54,6 +54,7 @@ router.get('/logout', (req, res, next) => {
     });
   });
 });
+
 // backend: routes/authRoutes.js
 router.get('/current-user', (req, res) => {
   if (req.isAuthenticated()) {
