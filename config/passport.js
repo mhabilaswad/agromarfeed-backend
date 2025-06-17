@@ -99,14 +99,21 @@ passport.use(
 );
 
 // Local (Credentials) Strategy
+// Local (Credentials) Strategy
 passport.use(
   new LocalStrategy(
     { usernameField: 'email' },
     async (email, password, done) => {
       try {
         const user = await User.findOne({ email });
+
         if (!user) {
           return done(null, false, { message: 'No user found' });
+        }
+
+        // ✅ Cek apakah user sudah verifikasi email
+        if (!user.isVerified) {
+          return done(null, false, { message: 'Please verify your email first' });
         }
 
         const account = user.accounts.find(acc => acc.provider === 'email');
@@ -126,5 +133,6 @@ passport.use(
     }
   )
 );
+
 
 module.exports = passport;

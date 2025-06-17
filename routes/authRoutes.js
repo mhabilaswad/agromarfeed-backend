@@ -62,4 +62,9 @@ router.get('/current-user', (req, res) => {
     res.status(401).json({ message: 'Not authenticated' });
   }
 });
+
+
+// Verifikasi email
+router.get('/verify-email', authController.verifyEmail);
+
 module.exports = router;
