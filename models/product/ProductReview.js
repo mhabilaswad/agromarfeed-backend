@@ -12,7 +12,7 @@ const productReviewSchema = new mongoose.Schema({
     required: true,
   },
   rating: Number,
-  ulasan: Text,
+  ulasan: String,
   gambar: String,
 }, { timestamps: true });
 
