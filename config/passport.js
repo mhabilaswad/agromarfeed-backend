@@ -1,3 +1,118 @@
+// const passport = require('passport');
+// const GoogleStrategy = require('passport-google-oauth20').Strategy;
+// const GitHubStrategy = require('passport-github2').Strategy;
+// const LocalStrategy = require('passport-local').Strategy;
+// const bcrypt = require('bcrypt');
+// const User = require('../models/user/User');
+
+// passport.serializeUser((user, done) => {
+//   done(null, user.id);
+// });
+
+// passport.deserializeUser(async (id, done) => {
+//   try {
+//     const user = await User.findById(id);
+//     done(null, user);
+//   } catch (error) {
+//     done(error, null);
+//   }
+// });
+
+// // ✅ Google OAuth Strategy
+// passport.use(new GoogleStrategy({
+//   clientID: process.env.GOOGLE_CLIENT_ID,
+//   clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+//   callbackURL: `${process.env.BACKEND_URL}/api/auth/google/callback`, // FULL URL
+//   passReqToCallback: true,
+// }, async (req, accessToken, refreshToken, profile, done) => {
+//   try {
+//     const email = profile.emails[0].value;
+//     let user = await User.findOne({ email });
+
+//     if (!user) {
+//       user = await User.create({
+//         name: profile.displayName,
+//         email,
+//         accounts: [{
+//           provider: 'google',
+//           providerAccountId: profile.id,
+//           access_token: accessToken,
+//           type: 'oauth',
+//         }],
+//         isVerified: true, // ✅ anggap OAuth verified
+//       });
+//     }
+
+//     done(null, user);
+//   } catch (err) {
+//     done(err, null);
+//   }
+// }));
+
+// // ✅ GitHub OAuth Strategy
+// passport.use(new GitHubStrategy({
+//   clientID: process.env.GITHUB_CLIENT_ID,
+//   clientSecret: process.env.GITHUB_CLIENT_SECRET,
+//   callbackURL: `${process.env.BACKEND_URL}/api/auth/github/callback`, // FULL URL
+// }, async (accessToken, refreshToken, profile, done) => {
+//   try {
+//     const email = profile.emails?.[0]?.value || `${profile.username}@github.com`;
+//     let user = await User.findOne({ email });
+
+//     if (!user) {
+//       user = await User.create({
+//         name: profile.displayName || profile.username,
+//         email,
+//         accounts: [{
+//           provider: 'github',
+//           providerAccountId: profile.id,
+//           access_token: accessToken,
+//           type: 'oauth',
+//         }],
+//         isVerified: true, // ✅ verified juga
+//       });
+//     } else {
+//       const existing = user.accounts.find(acc => acc.provider === 'github');
+//       if (!existing) {
+//         user.accounts.push({
+//           provider: 'github',
+//           providerAccountId: profile.id,
+//           access_token: accessToken,
+//           type: 'oauth',
+//         });
+//         await user.save();
+//       }
+//     }
+
+//     done(null, user);
+//   } catch (error) {
+//     done(error, null);
+//   }
+// }));
+
+// // Local Strategy
+// passport.use(new LocalStrategy({
+//   usernameField: 'email',
+// }, async (email, password, done) => {
+//   try {
+//     const user = await User.findOne({ email });
+//     if (!user) return done(null, false, { message: 'No user found' });
+//     if (!user.isVerified) return done(null, false, { message: 'Please verify your email first' });
+
+//     const account = user.accounts.find(acc => acc.provider === 'email');
+//     if (!account || !account.access_token) return done(null, false, { message: 'Invalid credentials' });
+
+//     const isValid = await bcrypt.compare(password, account.access_token);
+//     if (!isValid) return done(null, false, { message: 'Invalid credentials' });
+
+//     return done(null, user);
+//   } catch (error) {
+//     return done(error);
+//   }
+// }));
+
+// module.exports = passport;
+
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const GitHubStrategy = require('passport-github2').Strategy;
@@ -18,15 +133,22 @@ passport.deserializeUser(async (id, done) => {
   }
 });
 
-// ✅ Google OAuth Strategy
+// ==========================
+// Google OAuth Strategy
+// ==========================
 passport.use(new GoogleStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID,
   clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-  callbackURL: `${process.env.BACKEND_URL}/api/auth/google/callback`, // FULL URL
+  callbackURL: '/api/auth/google/callback',
   passReqToCallback: true,
 }, async (req, accessToken, refreshToken, profile, done) => {
   try {
-    const email = profile.emails[0].value;
+    const fullURL = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
+    console.log('Callback hit from:', fullURL);
+
+    const email = profile.emails?.[0]?.value;
+    if (!email) return done(new Error('Email not found from Google profile'), null);
+
     let user = await User.findOne({ email });
 
     if (!user) {
@@ -39,7 +161,6 @@ passport.use(new GoogleStrategy({
           access_token: accessToken,
           type: 'oauth',
         }],
-        isVerified: true, // ✅ anggap OAuth verified
       });
     }
 
@@ -49,14 +170,17 @@ passport.use(new GoogleStrategy({
   }
 }));
 
-// ✅ GitHub OAuth Strategy
+// ==========================
+// GitHub OAuth Strategy
+// ==========================
 passport.use(new GitHubStrategy({
   clientID: process.env.GITHUB_CLIENT_ID,
   clientSecret: process.env.GITHUB_CLIENT_SECRET,
-  callbackURL: `${process.env.BACKEND_URL}/api/auth/github/callback`, // FULL URL
+  callbackURL: '/api/auth/github/callback',
 }, async (accessToken, refreshToken, profile, done) => {
   try {
     const email = profile.emails?.[0]?.value || `${profile.username}@github.com`;
+
     let user = await User.findOne({ email });
 
     if (!user) {
@@ -69,11 +193,10 @@ passport.use(new GitHubStrategy({
           access_token: accessToken,
           type: 'oauth',
         }],
-        isVerified: true, // ✅ verified juga
       });
     } else {
-      const existing = user.accounts.find(acc => acc.provider === 'github');
-      if (!existing) {
+      const accountExists = user.accounts.find(acc => acc.provider === 'github');
+      if (!accountExists) {
         user.accounts.push({
           provider: 'github',
           providerAccountId: profile.id,
@@ -90,20 +213,32 @@ passport.use(new GitHubStrategy({
   }
 }));
 
+// ==========================
 // Local Strategy
+// ==========================
 passport.use(new LocalStrategy({
   usernameField: 'email',
 }, async (email, password, done) => {
   try {
     const user = await User.findOne({ email });
-    if (!user) return done(null, false, { message: 'No user found' });
-    if (!user.isVerified) return done(null, false, { message: 'Please verify your email first' });
+
+    if (!user) {
+      return done(null, false, { message: 'No user found' });
+    }
+
+    if (!user.isVerified) {
+      return done(null, false, { message: 'Please verify your email first' });
+    }
 
     const account = user.accounts.find(acc => acc.provider === 'email');
-    if (!account || !account.access_token) return done(null, false, { message: 'Invalid credentials' });
+    if (!account || !account.access_token) {
+      return done(null, false, { message: 'Invalid credentials' });
+    }
 
     const isValid = await bcrypt.compare(password, account.access_token);
-    if (!isValid) return done(null, false, { message: 'Invalid credentials' });
+    if (!isValid) {
+      return done(null, false, { message: 'Invalid credentials' });
+    }
 
     return done(null, user);
   } catch (error) {

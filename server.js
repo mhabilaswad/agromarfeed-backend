@@ -38,6 +38,8 @@ const artikelRoutes = require('./routes/artikelRoutes');
 const productRoutes = require('./routes/productRoutes');
 const productCompositionRoutes = require('./routes/productCompositionRoutes');
 const chatRoutes = require('./routes/chat');
+const productReviewRoutes = require('./routes/productReviewRoutes');
+const cartRoutes = require('./routes/cartRoutes');
 
 app.get('/', (req, res) => {
   res.json({ message: 'Welcome to AgroMarFeed API' });
@@ -49,6 +51,8 @@ app.use('/api/artikels', artikelRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/productCompositions', productCompositionRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/productReviews', productReviewRoutes);
+app.use('/api/cart', cartRoutes);
 
 // Global error handler
 app.use((err, req, res, next) => {
