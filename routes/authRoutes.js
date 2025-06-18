@@ -27,7 +27,7 @@ router.get('/google/callback', (req, res, next) => {
     req.logIn(user, (err) => {
       if (err) return next(err);
       // Redirect to frontend with token or session
-      res.redirect(`${process.env.FRONTEND_URL}/dashboard`);
+      res.redirect(`${process.env.FRONTEND_URL}/`);
     });
   })(req, res, next);
 });
@@ -40,7 +40,7 @@ router.get('/github/callback', (req, res, next) => {
     if (!user) return res.status(401).json({ message: info.message || 'GitHub login failed' });
     req.logIn(user, (err) => {
       if (err) return next(err);
-      res.redirect(`${process.env.FRONTEND_URL}/dashboard`);
+      res.redirect(`${process.env.FRONTEND_URL}/`);
     });
   })(req, res, next);
 });

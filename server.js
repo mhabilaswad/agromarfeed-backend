@@ -8,6 +8,7 @@ const authRoutes = require('./routes/authRoutes');
 const cors = require('cors'); // Added for CORS
 
 const app = express();
+const PORT = process.env.PORT || 4000;
 
 app.set('trust proxy', 1);
 
@@ -37,6 +38,8 @@ const artikelRoutes = require('./routes/artikelRoutes');
 const productRoutes = require('./routes/productRoutes');
 const productCompositionRoutes = require('./routes/productCompositionRoutes');
 const chatRoutes = require('./routes/chat');
+const productReviewRoutes = require('./routes/productReviewRoutes');
+const cartRoutes = require('./routes/cartRoutes');
 
 app.get('/', (req, res) => {
   res.json({ message: 'Welcome to AgroMarFeed API' });
@@ -48,6 +51,8 @@ app.use('/api/artikels', artikelRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/productCompositions', productCompositionRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/productReviews', productReviewRoutes);
+app.use('/api/cart', cartRoutes);
 
 // Global error handler
 app.use((err, req, res, next) => {
@@ -55,13 +60,26 @@ app.use((err, req, res, next) => {
   res.status(500).json({ message: 'Something went wrong!' });
 });
 
-// Start server after DB connection
+// // Start server after DB connection (BE hosting)
+// const startServer = async () => {
+//   try {
+//     await connectDB();
+//   } catch (error) {
+//     console.error('Failed to connect DB:', error);
+//     throw error;
+//   }
+// };
+
+// Mulai server setelah database connect lokal
 const startServer = async () => {
   try {
     await connectDB();
+    app.listen(PORT, () => {
+      console.log(`✅ Server running at http://localhost:${PORT}`);
+    });
   } catch (error) {
-    console.error('Failed to connect DB:', error);
-    throw error;
+    console.error('❌ Failed to connect DB:', error);
+    process.exit(1); // Exit process if DB fails
   }
 };
 
