@@ -1,4 +1,4 @@
-const Cart = require('../models/cart'); // Path disesuaikan
+const Cart = require('../models/cart/Cart'); // Path disesuaikan
 const Product = require('../models/product/Product'); // Untuk ambil info harga jika perlu
 
 // ✅ Tambah item ke keranjang
