@@ -50,6 +50,7 @@ const alamatSchema = new mongoose.Schema({
 const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
+  profile_picture: { type: String, required: true },
   accounts: [
     {
       provider: { type: String, required: true },
@@ -75,16 +76,16 @@ const userSchema = new mongoose.Schema({
     enum: ['pembeli', 'admin', 'penjual'],
     default: "pembeli"
   },
-isVerified: {
-  type: Boolean,
-  default: false,
-},
-emailVerificationToken: {
-  type: String,
-},
-emailVerificationTokenExpires: {
-  type: Date,
-},
+  isVerified: {
+    type: Boolean,
+    default: false,
+  },
+  emailVerificationToken: {
+    type: String,
+  },
+  emailVerificationTokenExpires: {
+    type: Date,
+  },
 
 });
 

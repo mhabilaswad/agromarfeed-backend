@@ -8,6 +8,7 @@ const authRoutes = require('./routes/authRoutes');
 const cors = require('cors'); // Added for CORS
 
 const app = express();
+const PORT = process.env.PORT || 4000;
 
 app.set('trust proxy', 1);
 
@@ -55,13 +56,26 @@ app.use((err, req, res, next) => {
   res.status(500).json({ message: 'Something went wrong!' });
 });
 
-// Start server after DB connection
+// // Start server after DB connection (BE hosting)
+// const startServer = async () => {
+//   try {
+//     await connectDB();
+//   } catch (error) {
+//     console.error('Failed to connect DB:', error);
+//     throw error;
+//   }
+// };
+
+// Mulai server setelah database connect lokal
 const startServer = async () => {
   try {
     await connectDB();
+    app.listen(PORT, () => {
+      console.log(`✅ Server running at http://localhost:${PORT}`);
+    });
   } catch (error) {
-    console.error('Failed to connect DB:', error);
-    throw error;
+    console.error('❌ Failed to connect DB:', error);
+    process.exit(1); // Exit process if DB fails
   }
 };
 
