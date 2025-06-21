@@ -8,9 +8,6 @@ router.post('/create', orderController.createOrder);
 // ✅ Initiate payment
 router.post('/:order_id/payment', orderController.initiatePayment);
 
-// ✅ Handle payment notification (webhook)
-router.post('/payment/notification', orderController.handlePaymentNotification);
-
 // ✅ Get user's orders
 router.get('/user/:user_id', orderController.getOrdersByUser);
 
