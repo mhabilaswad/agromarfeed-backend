@@ -31,9 +31,13 @@ exports.createOrder = async (req, res) => {
     const total_harga = cart.cart_item.reduce((sum, item) => sum + item.subtotal, 0);
     const total_bayar = total_harga + (ongkir || 0);
 
+    // Generate unique order ID
+    const orderId = `ORDER-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
     // Create order
     const order = new Order({
       user_id,
+      orderId: orderId,
       order_item: cart.cart_item.map(item => ({
         product_id: item.product_id._id,
         jumlah: item.jumlah,
@@ -81,7 +85,7 @@ exports.initiatePayment = async (req, res) => {
     // Prepare Midtrans transaction details
     const transactionDetails = {
       transaction_details: {
-        order_id: `ORDER-${order._id}`,
+        order_id: order.orderId,
         gross_amount: order.total_bayar
       },
       customer_details: {
@@ -136,67 +140,27 @@ exports.initiatePayment = async (req, res) => {
   }
 };
 
-// ✅ Handle Midtrans notification
-exports.handlePaymentNotification = async (req, res) => {
-  try {
-    const notification = req.body;
-
-    // Verify signature key
-    const expectedSignature = crypto
-      .createHash('sha512')
-      .update(notification.order_id + notification.status_code + notification.gross_amount + process.env.MIDTRANS_SERVER_KEY)
-      .digest('hex');
-
-    if (notification.signature_key !== expectedSignature) {
-      return res.status(400).json({ message: 'Invalid signature' });
-    }
-
-    // Find order by Midtrans order ID
-    const order = await Order.findOne({ midtrans_order_id: notification.order_id });
-    if (!order) {
-      return res.status(404).json({ message: 'Order tidak ditemukan' });
-    }
-
-    // Update order status based on payment status
-    switch (notification.transaction_status) {
-      case 'capture':
-      case 'settlement':
-        order.payment_status = 'paid';
-        order.status = 'processing';
-        order.midtrans_transaction_id = notification.transaction_id;
-        break;
-      case 'pending':
-        order.payment_status = 'pending';
-        break;
-      case 'deny':
-      case 'expire':
-      case 'cancel':
-        order.payment_status = 'failed';
-        order.status = 'cancelled';
-        break;
-    }
-
-    await order.save();
-
-    res.status(200).json({ message: 'Notification processed successfully' });
-  } catch (error) {
-    console.error('Gagal proses notification:', error);
-    res.status(500).json({ message: 'Terjadi kesalahan server' });
-  }
-};
-
 // ✅ Get order by user
 exports.getOrdersByUser = async (req, res) => {
   try {
     const user_id = req.user?._id || req.params.user_id;
+    
+    console.log(`🔍 Getting orders for user: ${user_id}`);
 
     const orders = await Order.find({ user_id })
-      .populate('order_item.product_id', 'name imageUrl')
+      .populate('order_item.product_id', 'name imageUrl price')
       .sort({ createdAt: -1 });
+
+    console.log(`✅ Found ${orders.length} orders for user ${user_id}`);
+    
+    // Log order details for debugging
+    orders.forEach((order, index) => {
+      console.log(`Order ${index + 1}: ${order.orderId} - ${order.status} - ${order.payment_status}`);
+    });
 
     res.status(200).json(orders);
   } catch (error) {
-    console.error('Gagal ambil orders:', error);
+    console.error('❌ Gagal ambil orders:', error);
     res.status(500).json({ message: 'Terjadi kesalahan server' });
   }
 };
@@ -205,19 +169,66 @@ exports.getOrdersByUser = async (req, res) => {
 exports.getOrderById = async (req, res) => {
   try {
     const { order_id } = req.params;
-
-    const order = await Order.findById(order_id)
-      .populate('user_id', 'name email')
-      .populate('order_item.product_id', 'name imageUrl price');
-
-    if (!order) {
-      return res.status(404).json({ message: 'Order tidak ditemukan' });
+    
+    if (!order_id) {
+      return res.status(400).json({ message: 'Order ID is required' });
     }
 
-    res.status(200).json(order);
+    console.log(`🔍 Looking for order with ID: ${order_id}`);
+
+    // Try multiple ways to find the order
+    let order = await Order.findOne({ orderId: order_id })
+      .populate('user_id', 'name email')
+      .populate('order_item.product_id', 'name price image');
+
+    if (!order) {
+      console.log(`🔍 Order not found by orderId: ${order_id}, trying by midtrans_order_id`);
+      order = await Order.findOne({ midtrans_order_id: order_id })
+        .populate('user_id', 'name email')
+        .populate('order_item.product_id', 'name price image');
+    }
+
+    // Only try findById if the order_id looks like a valid ObjectId (24 character hex string)
+    if (!order && /^[0-9a-fA-F]{24}$/.test(order_id)) {
+      console.log(`🔍 Order not found by midtrans_order_id: ${order_id}, trying by _id`);
+      order = await Order.findById(order_id)
+        .populate('user_id', 'name email')
+        .populate('order_item.product_id', 'name price image');
+    } else if (!order) {
+      console.log(`🔍 Skipping findById - order_id is not a valid ObjectId: ${order_id}`);
+    }
+
+    if (!order) {
+      console.log(`❌ Order not found for any ID format: ${order_id}`);
+      
+      // List some recent orders for debugging
+      const recentOrders = await Order.find()
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .select('orderId midtrans_order_id _id user_id status createdAt');
+      
+      console.log('📋 Recent orders for debugging:', recentOrders);
+      
+      return res.status(404).json({ 
+        message: 'Order not found',
+        searchedId: order_id,
+        recentOrders: recentOrders
+      });
+    }
+
+    console.log(`✅ Order found: ${order._id}, Status: ${order.status}, User: ${order.user_id}`);
+
+    res.json({
+      success: true,
+      order: order
+    });
+
   } catch (error) {
-    console.error('Gagal ambil order:', error);
-    res.status(500).json({ message: 'Terjadi kesalahan server' });
+    console.error('❌ Error fetching order:', error);
+    res.status(500).json({ 
+      message: 'Failed to fetch order', 
+      error: error.message 
+    });
   }
 };
 

@@ -66,6 +66,11 @@ async function createPaymentToken(orderData) {
           },
         },
       },
+      callbacks: {
+        finish: `${process.env.FRONTEND_URL}/pembayaran/success?order_id=${orderData.orderId}`,
+        error: `${process.env.FRONTEND_URL}/pembayaran/error?order_id=${orderData.orderId}`,
+        pending: `${process.env.FRONTEND_URL}/pembayaran/pending?order_id=${orderData.orderId}`,
+      },
     };
 
     const transaction = await snap.createTransaction(parameter);

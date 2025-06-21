@@ -7,6 +7,11 @@ const orderSchema = new mongoose.Schema({
     ref: 'User',  // Referensi ke model User
     required: true,  // user_id wajib ada
   },
+  orderId: {
+    type: String,
+    unique: true,
+    required: true,  // Order ID wajib ada untuk tracking
+  },
   order_item: [
     {
         product_id: {
