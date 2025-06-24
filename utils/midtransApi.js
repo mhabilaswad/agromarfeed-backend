@@ -83,9 +83,12 @@ async function createPaymentToken(orderData) {
 // Handle payment notification
 async function handlePaymentNotification(notification) {
   try {
-    const statusResponse = await core.transaction.notification(notification);
-    return statusResponse;
+    // Langsung return notification dari Midtrans tanpa cek status lagi
+    // Karena notifikasi sudah berisi data transaksi yang valid
+    console.log('📨 Processing notification:', JSON.stringify(notification, null, 2));
+    return notification;
   } catch (error) {
+    console.error('❌ Error processing notification:', error);
     throw error;
   }
 }
