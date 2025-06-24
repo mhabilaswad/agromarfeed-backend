@@ -211,4 +211,47 @@ exports.getClientKey = async (req, res) => {
       error: error.message 
     });
   }
+};
+
+// Create payment token for a consultation appointment
+exports.createConsultationPayment = async (req, res) => {
+  try {
+    const { appointmentId, items, customerDetails } = req.body;
+
+    if (!appointmentId || !items || !customerDetails) {
+      return res.status(400).json({ 
+        message: 'Missing required fields: appointmentId, items, customerDetails' 
+      });
+    }
+
+    // Calculate total amount
+    const totalAmount = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+    // Prepare order data for Midtrans
+    const orderData = {
+      orderId: `consult_${appointmentId}`,
+      totalAmount,
+      items,
+      customerName: customerDetails.name,
+      customerEmail: customerDetails.email,
+      customerPhone: customerDetails.phone,
+      // Tidak perlu shipping/billing address untuk konsultasi
+    };
+
+    console.log('orderData for Midtrans:', orderData);
+    // Create payment token
+    const paymentToken = await createPaymentToken(orderData);
+
+    res.json({
+      success: true,
+      token: paymentToken.token,
+      redirect_url: paymentToken.redirect_url,
+    });
+  } catch (error) {
+    console.error('Consultation payment creation error:', error);
+    res.status(500).json({ 
+      message: 'Failed to create consultation payment', 
+      error: error.message 
+    });
+  }
 }; 
