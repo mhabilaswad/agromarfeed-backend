@@ -50,7 +50,7 @@ const alamatSchema = new mongoose.Schema({
 const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
-  profile_picture: { type: String, required: true },
+  profile_picture: { type: String, required: false },
   accounts: [
     {
       provider: { type: String, required: true },

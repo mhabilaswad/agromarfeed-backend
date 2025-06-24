@@ -3,18 +3,17 @@ require("dotenv").config();
 const axios = require("axios");
 
 exports.handleChat = async (req, res) => {
-  const { userMessage } = req.body;
+  const { userMessage, saldoRekening, mutasiRekening } = req.body;
 
   try {
     const response = await axios.post(
       "https://openrouter.ai/api/v1/chat/completions",
       {
-        model: "meta-llama/llama-3.3-8b-instruct:free",
+        model: "deepseek/deepseek-r1-0528-qwen3-8b:free",
         messages: [
           {
             role: "system",
-            content:
-              "Acting as an AI Chatbot from the AgroMarFeed website, you are asked to answer questions from this user using the languages user use. You are only allowed to answer questions about animal feed from agricultural waste and marine waste (that we sell). If the question is not about it, say that you are not trained for that.",
+            content: ``.trim(),
           },
           {
             role: "user",
@@ -26,8 +25,8 @@ exports.handleChat = async (req, res) => {
         headers: {
           Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
           "Content-Type": "application/json",
-          "HTTP-Referer": "https://your-vercel-site.vercel.app", // opsional
-          "X-Title": "AgroMarFeed Chatbot",
+          "HTTP-Referer": "https://your-vercel-site.vercel.app",
+          "X-Title": "AgroMarFeed Chatbot", // bisa diubah jadi "BankApp Chatbot" misalnya
         },
       }
     );
