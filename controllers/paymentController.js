@@ -36,6 +36,13 @@ exports.createPayment = async (req, res) => {
     // Create payment token
     const paymentToken = await createPaymentToken(orderData);
 
+    // Simpan redirect_url ke order
+    const order = await Order.findOne({ orderId });
+    if (order) {
+      order.snap_redirect_url = paymentToken.redirect_url;
+      await order.save();
+    }
+
     res.json({
       success: true,
       token: paymentToken.token,

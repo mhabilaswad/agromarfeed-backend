@@ -67,6 +67,7 @@ const orderSchema = new mongoose.Schema({
   midtrans_order_id: String,
   midtrans_payment_type: String,
   midtrans_transaction_id: String,
+  snap_redirect_url: String,
   catatan: {
     type: String,
     default: '', 

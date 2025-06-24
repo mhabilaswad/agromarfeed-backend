@@ -5,7 +5,7 @@ const Product = require('../models/product/Product'); // Untuk ambil info harga 
 exports.addToCart = async (req, res) => {
   try {
     const user_id = req.user?._id || req.body.user_id;
-    const { product_id, jumlah } = req.body;
+    const { product_id, jumlah, weight_id, weight_value, harga_satuan } = req.body;
 
     if (!user_id || !product_id || !jumlah) {
       return res.status(400).json({ message: 'Data tidak lengkap' });
@@ -16,8 +16,8 @@ exports.addToCart = async (req, res) => {
       return res.status(404).json({ message: 'Produk tidak ditemukan' });
     }
 
-    const harga_satuan = product.price;
-    const subtotal = jumlah * harga_satuan;
+    const finalHargaSatuan = harga_satuan || product.price;
+    const subtotal = jumlah * finalHargaSatuan;
 
     let cart = await Cart.findOne({ user_id });
 
@@ -25,16 +25,16 @@ exports.addToCart = async (req, res) => {
     if (!cart) {
       cart = await Cart.create({
         user_id,
-        cart_item: [{ product_id, jumlah, harga_satuan, subtotal }],
+        cart_item: [{ product_id, jumlah, harga_satuan: finalHargaSatuan, subtotal, weight_id, weight_value }],
       });
     } else {
       // Jika item sudah ada, update jumlahnya
-      const existingItem = cart.cart_item.find(item => item.product_id.toString() === product_id);
+      const existingItem = cart.cart_item.find(item => item.product_id.toString() === product_id && item.weight_id === weight_id);
       if (existingItem) {
         existingItem.jumlah += jumlah;
-        existingItem.subtotal = existingItem.jumlah * harga_satuan;
+        existingItem.subtotal = existingItem.jumlah * finalHargaSatuan;
       } else {
-        cart.cart_item.push({ product_id, jumlah, harga_satuan, subtotal });
+        cart.cart_item.push({ product_id, jumlah, harga_satuan: finalHargaSatuan, subtotal, weight_id, weight_value });
       }
       await cart.save();
     }

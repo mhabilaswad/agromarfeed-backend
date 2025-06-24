@@ -29,7 +29,7 @@ exports.createOrder = async (req, res) => {
 
     // Calculate totals
     const total_harga = cart.cart_item.reduce((sum, item) => sum + item.subtotal, 0);
-    const total_bayar = total_harga + (ongkir || 0);
+    const total_bayar = typeof req.body.total_bayar === 'number' ? req.body.total_bayar : total_harga + (ongkir || 0);
 
     // Generate unique order ID
     const orderId = `ORDER-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;

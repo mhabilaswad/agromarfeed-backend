@@ -16,6 +16,8 @@ const cartSchema = new mongoose.Schema({
         jumlah: Number,
         harga_satuan: Number,
         subtotal: Number,
+        weight_id: String,
+        weight_value: String,
     },
   ],
 }, { timestamps: true });
