@@ -3,7 +3,11 @@ const Appointment = require('../models/appointment/appointment');
 // Create appointment
 exports.createAppointment = async (req, res) => {
   try {
-    const appointment = new Appointment(req.body);
+    // Generate unique orderId
+    const orderId = `ORDER-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    // Tambahkan orderId ke data appointment
+    const appointmentData = { ...req.body, orderId };
+    const appointment = new Appointment(appointmentData);
     await appointment.save();
     res.status(201).json(appointment);
   } catch (error) {
