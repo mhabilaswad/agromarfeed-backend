@@ -16,21 +16,16 @@ const artikelSchema = new mongoose.Schema({
   },
   penulis: [
     {
-      nama: { type: String, required: true },
-      avatar: { type: String, required: true },
+      nama: { type: String, required: false },
       role: { type: String },
     }],
   gambar_sampul: {
     type: String,  // Menyimpan URL atau path gambar sampul
-    required: true,  // Gambar sampul wajib ada
-  },
-  view_count: {
-    type: Number,
-    default: 0,  // Default view_count adalah 0
+    required: false,  // Gambar sampul wajib ada
   },
   kategori: {
     type: String,
-    required: true,  // Kategori wajib ada
+    required: false,  // Kategori wajib ada
   }
 }, { timestamps: true });  // Mencatat waktu pembuatan dan update secara otomatis
 

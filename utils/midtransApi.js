@@ -19,19 +19,21 @@ const core = new midtransClient.CoreApi({
 });
 
 // Create payment token using Snap API
-async function createPaymentToken(orderData) {
+async function createPaymentToken(orderData, type = 'order') {
   try {
+    const isAppointment = type === 'appointment';
+    const basePath = isAppointment ? '/pembayaranKonsultasi' : '/pembayaran';
     const parameter = {
       transaction_details: {
         order_id: orderData.orderId,
         gross_amount: orderData.totalAmount,
       },
-      item_details: orderData.items.map(item => ({
+      item_details: orderData.items?.map(item => ({
         id: item.productId,
         price: item.price,
         quantity: item.quantity,
         name: item.name,
-      })),
+      })) || [],
       customer_details: {
         first_name: orderData.customerName,
         email: orderData.customerEmail,
@@ -67,9 +69,9 @@ async function createPaymentToken(orderData) {
         },
       },
       callbacks: {
-        finish: `${process.env.FRONTEND_URL}/pembayaran/success?order_id=${orderData.orderId}`,
-        error: `${process.env.FRONTEND_URL}/pembayaran/error?order_id=${orderData.orderId}`,
-        pending: `${process.env.FRONTEND_URL}/pembayaran/pending?order_id=${orderData.orderId}`,
+        finish: `${process.env.FRONTEND_URL}${basePath}/success?order_id=${orderData.orderId}`,
+        error: `${process.env.FRONTEND_URL}${basePath}/error?order_id=${orderData.orderId}`,
+        pending: `${process.env.FRONTEND_URL}${basePath}/pending?order_id=${orderData.orderId}`,
       },
     };
 

@@ -1,4 +1,4 @@
-const { createPaymentToken, handlePaymentNotification, checkPaymentStatus, cancelPayment } = require('../utils/midtransApi');
+const { createPaymentToken, handlePaymentNotification, checkPaymentStatus, cancelPayment, appoin } = require('../utils/midtransApi');
 const Order = require('../models/order/Order');
 const Cart = require('../models/cart/Cart');
 
@@ -240,8 +240,7 @@ exports.createConsultationPayment = async (req, res) => {
 
     console.log('orderData for Midtrans:', orderData);
     // Create payment token
-    const paymentToken = await createPaymentToken(orderData);
-
+    const paymentToken = await createPaymentToken(orderData, 'appointment');
     res.json({
       success: true,
       token: paymentToken.token,

@@ -56,4 +56,17 @@ exports.deleteAppointment = async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
+};
+
+// Get appointment by orderId
+exports.getAppointmentByOrderId = async (req, res) => {
+  try {
+    const { orderId } = req.query;
+    if (!orderId) return res.status(400).json({ message: 'orderId diperlukan' });
+    const appointment = await Appointment.findOne({ orderId });
+    if (!appointment) return res.status(404).json({ message: 'Appointment tidak ditemukan' });
+    res.status(200).json(appointment);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 }; 
