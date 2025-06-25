@@ -21,10 +21,6 @@ const konsultanSchema = new mongoose.Schema({
         type: Number,
         required: true,
     },
-    image_url: {
-        type: String,
-        required: false,
-    },
     rating:{
         type: Number,
         required: true,
@@ -37,5 +33,9 @@ const konsultanSchema = new mongoose.Schema({
         type: Boolean,
         default: true
     },
+    jenis_kelamin:{
+        type: String,
+        default: true
+    }
 }, { timestamps: true });
 module.exports = mongoose.model('Konsultan', konsultanSchema);

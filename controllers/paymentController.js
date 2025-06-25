@@ -227,15 +227,19 @@ exports.createConsultationPayment = async (req, res) => {
     // Calculate total amount
     const totalAmount = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
-    // Prepare order data for Midtrans
+    // Ambil orderId dari appointment
+    const Appointment = require('../models/appointment/appointment');
+    const appointment = await Appointment.findById(appointmentId);
+    if (!appointment) {
+      return res.status(404).json({ message: 'Appointment tidak ditemukan' });
+    }
     const orderData = {
-      orderId: `consult_${appointmentId}`,
+      orderId: appointment.orderId,
       totalAmount,
       items,
       customerName: customerDetails.name,
       customerEmail: customerDetails.email,
       customerPhone: customerDetails.phone,
-      // Tidak perlu shipping/billing address untuk konsultasi
     };
 
     console.log('orderData for Midtrans:', orderData);
