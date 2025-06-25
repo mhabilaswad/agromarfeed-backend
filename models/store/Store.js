@@ -10,21 +10,38 @@ const storeSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    nik: {
+        type: String,
+        required: true
+    },
+    foto_ktp: {
+        type: String,
+        required: true
+    },
+    nama_toko: {
+        type: String,
+        required: true
+    },
+    email: {
+        type: String,
+        required: true
+    },
+    nomor_hp: {
+        type: String,
+        required: true
+    },
     deskripsi: {
         type: String,
         required: true
     },
     alamat: {
-        nama: String,
-        nomor_hp: String,
         label_alamat: String,
         provinsi: String,
         kabupaten: String,
         kecamatan: String,
         desa: String,
         kode_pos: Number,
-        alamat_lengkap: String,
-        catatan_kurir: String
+        alamat_lengkap: String
     },
     tanggal_dibuat: {
         type: Date,
