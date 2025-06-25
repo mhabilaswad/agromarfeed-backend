@@ -52,7 +52,7 @@ exports.getCartByUser = async (req, res) => {
     const user_id = req.user?._id || req.params.user_id;
 
     const cart = await Cart.findOne({ user_id })
-      .populate('cart_item.product_id', 'name imageUrl price stock')
+      .populate('cart_item.product_id', 'name imageUrl price stock store_id')
       .sort({ updatedAt: -1 });
 
     // Selalu return { cart_item: [...] }
