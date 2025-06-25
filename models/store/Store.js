@@ -51,6 +51,11 @@ const storeSchema = new mongoose.Schema({
         type: Boolean,
         default: true
     },
+    rating: {
+        type: Number,
+        default: 0
+    },
+    
 }, { timestamps: true });
 
 module.exports = mongoose.model('Store', storeSchema);

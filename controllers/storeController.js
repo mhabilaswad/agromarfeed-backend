@@ -1,12 +1,17 @@
 const Store = require('../models/store/Store');
+const User = require('../models/user/User');
 
 // Create a new store
 exports.createStore = async (req, res) => {
   try {
+    console.log('[STORE] Payload diterima:', req.body);
     const store = new Store(req.body);
     await store.save();
+    // Update role user menjadi penjual
+    await User.findByIdAndUpdate(req.body.user_id, { role: 'penjual' });
     res.status(201).json(store);
   } catch (error) {
+    console.error('[STORE] Error saat createStore:', error);
     res.status(400).json({ message: error.message });
   }
 };
