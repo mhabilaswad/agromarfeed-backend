@@ -40,7 +40,10 @@ app.use(
       secure: process.env.NODE_ENV === 'production', // Secure in production
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      httpOnly: true,
+      domain: process.env.NODE_ENV === 'production' ? '.vercel.app' : undefined, // Allow subdomain sharing
     },
+    name: 'agromarfeed.sid', // Custom session name
   })
 );
 app.use(passport.initialize());

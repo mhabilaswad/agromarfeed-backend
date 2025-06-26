@@ -48,8 +48,8 @@ router.get('/google/callback', (req, res, next) => {
         return next(err);
       }
       console.log('✅ User session created, redirecting to:', process.env.FRONTEND_URL);
-      // Redirect to frontend with token or session
-      res.redirect(`${process.env.FRONTEND_URL}/`);
+      // Redirect to frontend with success parameter
+      res.redirect(`${process.env.FRONTEND_URL}/?oauth=success`);
     });
   })(req, res, next);
 });
@@ -89,5 +89,20 @@ router.get('/current-user', (req, res) => {
 
 // Verifikasi email
 router.get('/verify-email', authController.verifyEmail);
+
+// Session check endpoint for debugging
+router.get('/session-check', (req, res) => {
+  console.log('Session check requested');
+  console.log('Session ID:', req.sessionID);
+  console.log('User in session:', req.user);
+  console.log('Session data:', req.session);
+  
+  res.json({
+    sessionID: req.sessionID,
+    user: req.user,
+    isAuthenticated: !!req.user,
+    sessionData: req.session
+  });
+});
 
 module.exports = router;
