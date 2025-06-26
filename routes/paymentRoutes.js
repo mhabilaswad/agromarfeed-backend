@@ -5,9 +5,6 @@ const paymentController = require('../controllers/paymentController');
 // Create payment token
 router.post('/create', paymentController.createPayment);
 
-// Create consultation payment
-router.post('/consultation', paymentController.createConsultationPayment);
-
 // Handle payment notification from Midtrans
 router.post('/notification', paymentController.paymentNotification);
 
