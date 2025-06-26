@@ -2,7 +2,7 @@ const midtransClient = require('midtrans-client');
 
 const MIDTRANS_SERVER_KEY = process.env.MIDTRANS_SERVER_KEY;
 const MIDTRANS_CLIENT_KEY = process.env.MIDTRANS_CLIENT_KEY;
-const MIDTRANS_IS_PRODUCTION = 'false';
+const MIDTRANS_IS_PRODUCTION = false;
 
 // Create Snap API instance
 const snap = new midtransClient.Snap({
