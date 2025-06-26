@@ -51,16 +51,14 @@ router.get('/google/callback', (req, res, next) => {
       console.log('✅ User session created');
       console.log('Session ID:', req.sessionID);
       console.log('Session data:', req.session);
+      console.log('NODE_ENV:', process.env.NODE_ENV);
+      console.log('Cookie settings - secure:', process.env.NODE_ENV === 'production');
+      console.log('Cookie settings - sameSite:', process.env.NODE_ENV === 'production' ? 'none' : 'lax');
       
-      // Set session cookie explicitly
-      res.cookie('agromarfeed.sid', req.sessionID, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-        maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      });
+      // Let express-session handle the cookie automatically
+      // Don't manually set cookie here as it conflicts with session config
       
-      console.log('✅ Session cookie set, redirecting to:', process.env.FRONTEND_URL);
+      console.log('✅ Redirecting to frontend:', process.env.FRONTEND_URL);
       // Redirect to frontend with success parameter
       res.redirect(`${process.env.FRONTEND_URL}/?oauth=success`);
     });
@@ -144,6 +142,28 @@ router.get('/session-check', (req, res) => {
     user: req.user,
     isAuthenticated: !!req.user,
     sessionData: req.session
+  });
+});
+
+// Test OAuth session endpoint
+router.get('/test-oauth-session', (req, res) => {
+  console.log('=== OAuth Session Test ===');
+  console.log('NODE_ENV:', process.env.NODE_ENV);
+  console.log('Session ID:', req.sessionID);
+  console.log('Session data:', req.session);
+  console.log('User:', req.user);
+  console.log('Is authenticated:', req.isAuthenticated());
+  console.log('All cookies:', req.headers.cookie);
+  console.log('Session cookie:', req.cookies['agromarfeed.sid']);
+  
+  res.json({
+    nodeEnv: process.env.NODE_ENV,
+    sessionID: req.sessionID,
+    sessionData: req.session,
+    user: req.user,
+    isAuthenticated: req.isAuthenticated(),
+    allCookies: req.headers.cookie,
+    sessionCookie: req.cookies['agromarfeed.sid']
   });
 });
 

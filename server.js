@@ -19,6 +19,12 @@ console.log('GOOGLE_CLIENT_ID:', process.env.GOOGLE_CLIENT_ID ? '✅ Set' : '❌
 console.log('GOOGLE_CLIENT_SECRET:', process.env.GOOGLE_CLIENT_SECRET ? '✅ Set' : '❌ Missing');
 console.log('SESSION_SECRET:', process.env.SESSION_SECRET ? '✅ Set' : '❌ Missing');
 
+// Force production mode for Vercel
+if (process.env.VERCEL) {
+  process.env.NODE_ENV = 'production';
+  console.log('🔄 Forced NODE_ENV to production for Vercel');
+}
+
 app.set('trust proxy', 1);
 
 // Middleware
@@ -46,6 +52,7 @@ app.use(
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
       httpOnly: true,
+      // Don't set domain - let browser handle it
     },
     name: 'agromarfeed.sid', // Custom session name
   })
