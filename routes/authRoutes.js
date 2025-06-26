@@ -47,7 +47,20 @@ router.get('/google/callback', (req, res, next) => {
         console.error('❌ Session login error:', err);
         return next(err);
       }
-      console.log('✅ User session created, redirecting to:', process.env.FRONTEND_URL);
+      
+      console.log('✅ User session created');
+      console.log('Session ID:', req.sessionID);
+      console.log('Session data:', req.session);
+      
+      // Set session cookie explicitly
+      res.cookie('agromarfeed.sid', req.sessionID, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+        maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      });
+      
+      console.log('✅ Session cookie set, redirecting to:', process.env.FRONTEND_URL);
       // Redirect to frontend with success parameter
       res.redirect(`${process.env.FRONTEND_URL}/?oauth=success`);
     });
@@ -77,15 +90,44 @@ router.get('/logout', (req, res, next) => {
   });
 });
 
-// backend: routes/authRoutes.js
-router.get('/current-user', (req, res) => {
-  if (req.isAuthenticated()) {
-    res.json({ user: req.user }); // user is an object or undefined (if req.user is undefined)
-  } else {
-    res.status(401).json({ message: 'Not authenticated' });
-  }
+// Session debug endpoint
+router.get('/session-debug', (req, res) => {
+  console.log('Session debug requested');
+  console.log('Session ID:', req.sessionID);
+  console.log('Session data:', req.session);
+  console.log('User:', req.user);
+  console.log('Is authenticated:', req.isAuthenticated());
+  
+  res.json({
+    sessionID: req.sessionID,
+    sessionData: req.session,
+    user: req.user,
+    isAuthenticated: req.isAuthenticated(),
+    cookies: req.headers.cookie
+  });
 });
 
+// Current user endpoint with better logging
+router.get('/current-user', (req, res) => {
+  console.log('Current user requested');
+  console.log('Session ID:', req.sessionID);
+  console.log('Is authenticated:', req.isAuthenticated());
+  console.log('User:', req.user);
+  
+  if (req.isAuthenticated() && req.user) {
+    console.log('✅ User authenticated:', req.user.email);
+    res.json({
+      success: true,
+      user: req.user
+    });
+  } else {
+    console.log('❌ User not authenticated');
+    res.status(401).json({
+      success: false,
+      message: 'Not authenticated'
+    });
+  }
+});
 
 // Verifikasi email
 router.get('/verify-email', authController.verifyEmail);
