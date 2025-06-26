@@ -139,15 +139,20 @@ passport.deserializeUser(async (id, done) => {
 passport.use(new GoogleStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID,
   clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-  callbackURL: '/api/auth/google/callback',
+  callbackURL: process.env.NODE_ENV === 'production' 
+    ? `${process.env.BACKEND_URL}/api/auth/google/callback`
+    : '/api/auth/google/callback',
   passReqToCallback: true,
 }, async (req, accessToken, refreshToken, profile, done) => {
   try {
     const fullURL = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
-    console.log('Callback hit from:', fullURL);
+    console.log('Google OAuth callback hit from:', fullURL);
 
     const email = profile.emails?.[0]?.value;
-    if (!email) return done(new Error('Email not found from Google profile'), null);
+    if (!email) {
+      console.error('Email not found from Google profile');
+      return done(new Error('Email not found from Google profile'), null);
+    }
 
     let user = await User.findOne({ email });
 
@@ -161,11 +166,27 @@ passport.use(new GoogleStrategy({
           access_token: accessToken,
           type: 'oauth',
         }],
+        isVerified: true, // OAuth users are verified
       });
+      console.log('New Google user created:', user.email);
+    } else {
+      // Check if Google account already exists
+      const existingGoogleAccount = user.accounts.find(acc => acc.provider === 'google');
+      if (!existingGoogleAccount) {
+        user.accounts.push({
+          provider: 'google',
+          providerAccountId: profile.id,
+          access_token: accessToken,
+          type: 'oauth',
+        });
+        await user.save();
+        console.log('Google account added to existing user:', user.email);
+      }
     }
 
     done(null, user);
   } catch (err) {
+    console.error('Google OAuth error:', err);
     done(err, null);
   }
 }));
@@ -176,7 +197,9 @@ passport.use(new GoogleStrategy({
 passport.use(new GitHubStrategy({
   clientID: process.env.GITHUB_CLIENT_ID,
   clientSecret: process.env.GITHUB_CLIENT_SECRET,
-  callbackURL: '/api/auth/github/callback',
+  callbackURL: process.env.NODE_ENV === 'production' 
+    ? `${process.env.BACKEND_URL}/api/auth/github/callback`
+    : '/api/auth/github/callback',
 }, async (accessToken, refreshToken, profile, done) => {
   try {
     const email = profile.emails?.[0]?.value || `${profile.username}@github.com`;
@@ -193,7 +216,9 @@ passport.use(new GitHubStrategy({
           access_token: accessToken,
           type: 'oauth',
         }],
+        isVerified: true, // OAuth users are verified
       });
+      console.log('New GitHub user created:', user.email);
     } else {
       const accountExists = user.accounts.find(acc => acc.provider === 'github');
       if (!accountExists) {
@@ -204,11 +229,13 @@ passport.use(new GitHubStrategy({
           type: 'oauth',
         });
         await user.save();
+        console.log('GitHub account added to existing user:', user.email);
       }
     }
 
     done(null, user);
   } catch (error) {
+    console.error('GitHub OAuth error:', error);
     done(error, null);
   }
 }));
