@@ -137,8 +137,8 @@ passport.deserializeUser(async (id, done) => {
 // Google OAuth Strategy
 // ==========================
 passport.use(new GoogleStrategy({
-  clientID: process.env.GOOGLE_CLIENT_ID,
-  clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+  clientID: process.env.GOOGLE_CLIENT_ID || 'missing_client_id',
+  clientSecret: process.env.GOOGLE_CLIENT_SECRET || 'missing_client_secret',
   callbackURL: process.env.NODE_ENV === 'production' 
     ? `${process.env.BACKEND_URL}/api/auth/google/callback`
     : '/api/auth/google/callback',

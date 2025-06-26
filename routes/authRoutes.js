@@ -19,13 +19,35 @@ router.post('/login', (req, res, next) => {
 });
 
 // Google OAuth
-router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+router.get('/google', (req, res, next) => {
+  console.log('🔍 Google OAuth initiated');
+  console.log('Callback URL will be:', process.env.NODE_ENV === 'production' 
+    ? `${process.env.BACKEND_URL}/api/auth/google/callback`
+    : '/api/auth/google/callback');
+  passport.authenticate('google', { scope: ['profile', 'email'] })(req, res, next);
+});
+
 router.get('/google/callback', (req, res, next) => {
+  console.log('🔄 Google OAuth callback received');
+  console.log('Full callback URL:', `${req.protocol}://${req.get('host')}${req.originalUrl}`);
+  
   passport.authenticate('google', (err, user, info) => {
-    if (err) return next(err);
-    if (!user) return res.status(401).json({ message: info.message || 'Google login failed' });
+    if (err) {
+      console.error('❌ Google OAuth error:', err);
+      return next(err);
+    }
+    if (!user) {
+      console.error('❌ Google OAuth failed - no user:', info);
+      return res.status(401).json({ message: info.message || 'Google login failed' });
+    }
+    
+    console.log('✅ Google OAuth successful for user:', user.email);
     req.logIn(user, (err) => {
-      if (err) return next(err);
+      if (err) {
+        console.error('❌ Session login error:', err);
+        return next(err);
+      }
+      console.log('✅ User session created, redirecting to:', process.env.FRONTEND_URL);
       // Redirect to frontend with token or session
       res.redirect(`${process.env.FRONTEND_URL}/`);
     });

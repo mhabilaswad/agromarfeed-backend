@@ -10,10 +10,24 @@ const cors = require('cors'); // Added for CORS
 const app = express();
 const PORT = process.env.PORT || 4000;
 
+// Debug logging
+console.log('🔧 Environment Debug Info:');
+console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('BACKEND_URL:', process.env.BACKEND_URL);
+console.log('FRONTEND_URL:', process.env.FRONTEND_URL);
+console.log('GOOGLE_CLIENT_ID:', process.env.GOOGLE_CLIENT_ID ? '✅ Set' : '❌ Missing');
+console.log('GOOGLE_CLIENT_SECRET:', process.env.GOOGLE_CLIENT_SECRET ? '✅ Set' : '❌ Missing');
+console.log('SESSION_SECRET:', process.env.SESSION_SECRET ? '✅ Set' : '❌ Missing');
+
 app.set('trust proxy', 1);
 
 // Middleware
-app.use(cors({ origin: process.env.FRONTEND_URL, credentials: true })); // Allow frontend origin
+app.use(cors({ 
+  origin: process.env.FRONTEND_URL, 
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'ngrok-skip-browser-warning']
+}));
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 app.use(
