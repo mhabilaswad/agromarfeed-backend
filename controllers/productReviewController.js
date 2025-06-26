@@ -1,6 +1,7 @@
 const ProductReview = require('../models/product/ProductReview');
 const Product = require('../models/product/Product');
 const User = require('../models/user/User');
+const Order = require('../models/order/Order');
 
 // Middleware: Pastikan user login (jika pakai session)
 const ensureAuthenticated = (req, res, next) => {
@@ -48,9 +49,25 @@ const createReview = async (req, res) => {
       return res.status(400).json({ message: 'Ulasan terlalu panjang (maksimal 1000 karakter).' });
     }
 
+    // Validasi gambar base64 (opsional)
+    if (gambar && !gambar.startsWith('data:image/')) {
+      return res.status(400).json({ message: 'Format gambar tidak valid.' });
+    }
+
     const productExists = await Product.findById(product_id);
     if (!productExists) {
       return res.status(404).json({ message: 'Produk tidak ditemukan.' });
+    }
+
+    // CEK: User pernah membeli produk ini dan status ordernya delivered
+    const deliveredOrder = await Order.findOne({
+      user_id,
+      status: 'delivered',
+      'order_item.product_id': product_id
+    });
+
+    if (!deliveredOrder) {
+      return res.status(403).json({ message: 'Kamu hanya bisa review produk yang sudah kamu terima.' });
     }
 
     const existingReview = await ProductReview.findOne({ product_id, user_id });
@@ -91,8 +108,21 @@ const getReviewsByProduct = async (req, res) => {
   }
 };
 
+// Ambil semua review untuk user tertentu
+const getReviewsByUser = async (req, res) => {
+  try {
+    const { user_id } = req.params;
+    const reviews = await ProductReview.find({ user_id }).select('product_id');
+    res.status(200).json(reviews);
+  } catch (error) {
+    console.error('Gagal mengambil review user:', error);
+    res.status(500).json({ message: 'Terjadi kesalahan server.' });
+  }
+};
+
 module.exports = {
   ensureAuthenticated,
   createReview,
   getReviewsByProduct,
+  getReviewsByUser,
 };

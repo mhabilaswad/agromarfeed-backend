@@ -257,3 +257,110 @@ exports.cancelOrder = async (req, res) => {
     res.status(500).json({ message: 'Terjadi kesalahan server' });
   }
 };
+
+// ✅ Get orders for a specific store
+exports.getOrdersByStore = async (req, res) => {
+  try {
+    const { store_id } = req.params;
+    
+    console.log(`🔍 Getting orders for store: ${store_id}`);
+
+    // Find all products from this store
+    const products = await Product.find({ store_id }).select('_id');
+    const productIds = products.map(product => product._id);
+
+    if (productIds.length === 0) {
+      console.log(`📭 No products found for store: ${store_id}`);
+      return res.status(200).json([]);
+    }
+
+    // Find orders that contain products from this store
+    const orders = await Order.find({
+      'order_item.product_id': { $in: productIds }
+    })
+    .populate('user_id', 'name email')
+    .populate('order_item.product_id', 'name imageUrl price store_id')
+    .sort({ createdAt: -1 });
+
+    // Filter order items to only include products from this store
+    const filteredOrders = orders.map(order => {
+      const storeOrderItems = order.order_item.filter(item => 
+        productIds.includes(item.product_id._id)
+      );
+      
+      // Calculate totals for store products only
+      const storeTotalHarga = storeOrderItems.reduce((sum, item) => sum + item.subtotal, 0);
+      const storeTotalBayar = storeTotalHarga + (order.ongkir || 0);
+
+      return {
+        ...order.toObject(),
+        order_item: storeOrderItems,
+        total_harga: storeTotalHarga,
+        total_bayar: storeTotalBayar
+      };
+    });
+
+    console.log(`✅ Found ${filteredOrders.length} orders for store ${store_id}`);
+    
+    res.status(200).json(filteredOrders);
+  } catch (error) {
+    console.error('❌ Gagal ambil orders untuk store:', error);
+    res.status(500).json({ message: 'Terjadi kesalahan server' });
+  }
+};
+
+// ✅ Update order status (for store owners)
+exports.updateOrderStatus = async (req, res) => {
+  try {
+    const { order_id } = req.params;
+    const { status } = req.body;
+
+    // Validate status
+    const validStatuses = ['pending', 'processing', 'shipped', 'delivered', 'cancelled', 'failed'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ message: 'Status tidak valid' });
+    }
+
+    const order = await Order.findById(order_id);
+    if (!order) {
+      return res.status(404).json({ message: 'Order tidak ditemukan' });
+    }
+
+    // Check if order contains products from the requesting store
+    const { store_id } = req.body;
+    if (store_id) {
+      const products = await Product.find({ store_id }).select('_id');
+      const productIds = products.map(product => product._id);
+      
+      const hasStoreProducts = order.order_item.some(item => {
+        const prodId = typeof item.product_id === 'object' && item.product_id._id
+          ? item.product_id._id
+          : item.product_id;
+        return productIds.map(id => id.toString()).includes(prodId.toString());
+      });
+      
+      if (!hasStoreProducts) {
+        return res.status(403).json({ message: 'Tidak memiliki akses untuk mengubah status order ini' });
+      }
+    }
+
+    // Update order status
+    order.status = status;
+    await order.save();
+
+    console.log(`✅ Order ${order_id} status updated to: ${status}`);
+
+    res.status(200).json({ 
+      message: 'Status order berhasil diupdate', 
+      order: {
+        _id: order._id,
+        orderId: order.orderId,
+        status: order.status,
+        updatedAt: order.updatedAt
+      }
+    });
+  } catch (error) {
+    console.error('❌ Gagal update status order:', error);
+    res.status(500).json({ message: 'Terjadi kesalahan server' });
+  }
+};
