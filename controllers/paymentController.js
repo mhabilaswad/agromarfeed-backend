@@ -129,6 +129,35 @@ exports.paymentNotification = async (req, res) => {
       console.log('✅ Order updated:', updatedOrder);
     }
 
+    // Update appointment jika ada
+    const Appointment = require('../models/appointment/appointment');
+    let updatedAppointment = await Appointment.findOneAndUpdate(
+      { orderId: orderId },
+      {
+        status: orderStatus,
+        payment_status: paymentStatus,
+        updatedAt: new Date()
+      },
+      { new: true }
+    );
+
+    if (!updatedAppointment) {
+      // Coba update by midtrans_order_id
+      updatedAppointment = await Appointment.findOneAndUpdate(
+        { midtrans_order_id: orderId },
+        {
+          status: orderStatus,
+          payment_status: paymentStatus,
+          updatedAt: new Date()
+        },
+        { new: true }
+      );
+    }
+
+    if (updatedAppointment) {
+      console.log('✅ Appointment updated:', updatedAppointment);
+    }
+
     // Return success response ke Midtrans
     res.status(200).json({ message: 'Notification processed successfully' });
 
@@ -234,6 +263,7 @@ exports.createConsultationPayment = async (req, res) => {
       return res.status(404).json({ message: 'Appointment tidak ditemukan' });
     }
     const orderData = {
+      appointmentId: appointmentId,
       orderId: appointment.orderId,
       totalAmount,
       items,

@@ -4,7 +4,7 @@ const Appointment = require('../models/appointment/appointment');
 exports.createAppointment = async (req, res) => {
   try {
     // Generate unique orderId
-    const orderId = `ORDER-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const orderId = `KONSULTASI-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     // Tambahkan orderId ke data appointment
     const appointmentData = { ...req.body, orderId };
     const appointment = new Appointment(appointmentData);
@@ -67,6 +67,28 @@ exports.getAppointmentByOrderId = async (req, res) => {
     if (!appointment) return res.status(404).json({ message: 'Appointment tidak ditemukan' });
     res.status(200).json(appointment);
   } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Get appointments by user_id
+exports.getAppointmentsByUserId = async (req, res) => {
+  try {
+    const { user_id } = req.query;
+    if (!user_id) return res.status(400).json({ message: 'user_id diperlukan' });
+    
+    console.log('Fetching appointments for user_id:', user_id);
+    
+    const appointments = await Appointment.find({ user_id })
+      .populate('konsultan_id', 'nama profesi')
+      .sort({ createdAt: -1 });
+    
+    console.log('Found appointments:', appointments.length);
+    console.log('First appointment:', JSON.stringify(appointments[0], null, 2));
+    
+    res.status(200).json(appointments);
+  } catch (error) {
+    console.error('Error in getAppointmentsByUserId:', error);
     res.status(500).json({ message: error.message });
   }
 }; 

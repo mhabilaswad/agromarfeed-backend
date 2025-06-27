@@ -47,9 +47,16 @@ const appointmentSchema = new mongoose.Schema({
     enum: ['pending', 'paid', 'failed', 'expired'],
     default: 'pending'
   },
+  status: {
+    type: String,
+    enum: ['pending', 'processing', 'completed', 'cancelled'],
+    default: 'pending'
+  },
   midtrans_order_id: String,
   midtrans_payment_type: String,
   midtrans_transaction_id: String,
+  payment_url: String,
+  snap_redirect_url: String,
 }, { timestamps: true });  // Mencatat waktu pembuatan dan update secara otomatis
 
 // Membuat model berdasarkan schema

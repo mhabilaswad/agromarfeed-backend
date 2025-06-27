@@ -22,7 +22,27 @@ const core = new midtransClient.CoreApi({
 async function createPaymentToken(orderData, type = 'order') {
   try {
     const isAppointment = type === 'appointment';
-    const basePath = isAppointment ? '/pembayaranKonsultasi' : '/pembayaran';
+    let basePath;
+    
+    if (isAppointment) {
+      // Untuk appointment, kita perlu mendapatkan slug konsultan dari appointment
+      const Appointment = require('../models/appointment/appointment');
+      const appointment = await Appointment.findById(orderData.appointmentId);
+      if (appointment && appointment.konsultan_id) {
+        const Konsultan = require('../models/konsultasi/konsultan');
+        const konsultan = await Konsultan.findById(appointment.konsultan_id);
+        if (konsultan) {
+          basePath = `/pembayaranKonsultasi/${konsultan._id}`;
+        } else {
+          basePath = '/pembayaranKonsultasi/success';
+        }
+      } else {
+        basePath = '/pembayaranKonsultasi/success';
+      }
+    } else {
+      basePath = '/pembayaran';
+    }
+    
     const parameter = {
       transaction_details: {
         order_id: orderData.orderId,
@@ -69,13 +89,24 @@ async function createPaymentToken(orderData, type = 'order') {
         },
       },
       callbacks: {
-        finish: `${process.env.FRONTEND_URL}${basePath}/success?order_id=${orderData.orderId}`,
-        error: `${process.env.FRONTEND_URL}${basePath}/error?order_id=${orderData.orderId}`,
-        pending: `${process.env.FRONTEND_URL}${basePath}/pending?order_id=${orderData.orderId}`,
+        finish: `${process.env.FRONTEND_URL}${basePath}?order_id=${orderData.orderId}`,
+        error: `${process.env.FRONTEND_URL}${basePath}?order_id=${orderData.orderId}`,
+        pending: `${process.env.FRONTEND_URL}${basePath}?order_id=${orderData.orderId}`,
       },
     };
 
     const transaction = await snap.createTransaction(parameter);
+    
+    // Jika ini adalah appointment, simpan payment_url dan snap_redirect_url ke appointment
+    if (isAppointment && orderData.appointmentId) {
+      const Appointment = require('../models/appointment/appointment');
+      await Appointment.findByIdAndUpdate(orderData.appointmentId, {
+        payment_url: transaction.redirect_url,
+        snap_redirect_url: transaction.redirect_url,
+        midtrans_order_id: orderData.orderId
+      });
+    }
+    
     return transaction;
   } catch (error) {
     throw error;
