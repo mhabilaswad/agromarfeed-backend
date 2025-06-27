@@ -1,6 +1,7 @@
 const { createPaymentToken, handlePaymentNotification, checkPaymentStatus, cancelPayment, appoin } = require('../utils/midtransApi');
 const Order = require('../models/order/Order');
 const Cart = require('../models/cart/Cart');
+const { createZoomMeeting } = require('../utils/zoomApi');
 
 // Create payment token for an order
 exports.createPayment = async (req, res) => {
@@ -154,8 +155,63 @@ exports.paymentNotification = async (req, res) => {
       );
     }
 
-    if (updatedAppointment) {
-      console.log('✅ Appointment updated:', updatedAppointment);
+    if (updatedAppointment && paymentStatus === 'paid' && !updatedAppointment.zoom_link) {
+      try {
+        // Buat Zoom meeting dinamis
+        console.log('🔍 Creating Zoom meeting for appointment:', updatedAppointment._id);
+        console.log('🔍 Creating Zoom meeting for appointment:', updatedAppointment.tanggal_konsultasi);
+        const zoomMeeting = await createZoomMeeting(
+          `Konsultasi dengan ${updatedAppointment.nama_lengkap}`,
+          updatedAppointment.tanggal_konsultasi // pastikan ISO string
+        );
+        updatedAppointment.zoom_link = zoomMeeting.join_url;
+        await updatedAppointment.save();
+        console.log('✅ Zoom meeting created and saved for appointment:', updatedAppointment._id);
+        
+        // Kirim email ke user
+        try {
+          const sendEmail = require('../utils/sendEmail');
+          // Format waktu
+          const meetingTime = new Date(zoomMeeting.start_time).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta', hour12: false });
+          // Format email sesuai permintaan user
+          const emailBody = `
+Halo ${updatedAppointment.nama_lengkap},
+
+Pembayaran konsultasi Anda telah berhasil.
+
+Berikut adalah detail meeting konsultasi Anda:
+
+Topic: ${zoomMeeting.topic}
+Waktu: ${meetingTime} WIB
+Join Zoom Meeting:
+${zoomMeeting.join_url}
+
+Meeting ID: ${zoomMeeting.id}
+Passcode: ${zoomMeeting.password}
+
+Silakan join sesuai jadwal yang dipilih.
+Terima kasih telah menggunakan layanan kami!
+
+Salam,
+Tim AgroMarFeed
+`;
+          await sendEmail({
+            to: updatedAppointment.email,
+            subject: 'Link Zoom Konsultasi Anda',
+            text: emailBody,
+            html: `<pre style="font-family:inherit">${emailBody}</pre>`
+          });
+          console.log('✅ Email sent successfully to:', updatedAppointment.email);
+        } catch (emailError) {
+          console.error('❌ Error sending email:', emailError.message);
+          // Don't fail the entire process if email fails
+        }
+      } catch (zoomError) {
+        console.error('❌ Error creating Zoom meeting:', zoomError.message);
+        // Don't fail the entire payment process if Zoom creation fails
+        // The appointment is still valid, just without Zoom link
+        console.log('⚠️ Payment processed successfully but Zoom meeting creation failed');
+      }
     }
 
     // Return success response ke Midtrans

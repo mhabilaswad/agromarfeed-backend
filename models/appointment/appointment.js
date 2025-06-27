@@ -57,6 +57,7 @@ const appointmentSchema = new mongoose.Schema({
   midtrans_transaction_id: String,
   payment_url: String,
   snap_redirect_url: String,
+  zoom_link: String,
 }, { timestamps: true });  // Mencatat waktu pembuatan dan update secara otomatis
 
 // Membuat model berdasarkan schema
