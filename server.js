@@ -10,15 +10,6 @@ const cors = require('cors'); // Added for CORS
 const app = express();
 const PORT = process.env.PORT || 4000;
 
-// Debug logging
-console.log('🔧 Environment Debug Info:');
-console.log('NODE_ENV:', process.env.NODE_ENV);
-console.log('BACKEND_URL:', process.env.BACKEND_URL);
-console.log('FRONTEND_URL:', process.env.FRONTEND_URL);
-console.log('GOOGLE_CLIENT_ID:', process.env.GOOGLE_CLIENT_ID ? '✅ Set' : '❌ Missing');
-console.log('GOOGLE_CLIENT_SECRET:', process.env.GOOGLE_CLIENT_SECRET ? '✅ Set' : '❌ Missing');
-console.log('SESSION_SECRET:', process.env.SESSION_SECRET ? '✅ Set' : '❌ Missing');
-
 // Force production mode for Vercel
 if (process.env.VERCEL) {
   process.env.NODE_ENV = 'production';

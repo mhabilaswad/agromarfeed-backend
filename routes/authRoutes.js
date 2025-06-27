@@ -105,21 +105,14 @@ router.get('/session-debug', (req, res) => {
   });
 });
 
-// Current user endpoint with better logging
+// Current user endpoint
 router.get('/current-user', (req, res) => {
-  console.log('Current user requested');
-  console.log('Session ID:', req.sessionID);
-  console.log('Is authenticated:', req.isAuthenticated());
-  console.log('User:', req.user);
-  
   if (req.isAuthenticated() && req.user) {
-    console.log('✅ User authenticated:', req.user.email);
     res.json({
       success: true,
       user: req.user
     });
   } else {
-    console.log('❌ User not authenticated');
     res.status(401).json({
       success: false,
       message: 'Not authenticated'
