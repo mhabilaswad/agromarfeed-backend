@@ -1,11 +1,52 @@
 // controllers/chatController.js
 require("dotenv").config();
 const axios = require("axios");
+const Product = require("../models/product/Product");
 
 exports.handleChat = async (req, res) => {
   const { userMessage } = req.body;
 
   try {
+    // Check if user is asking for product recommendations
+    const productKeywords = [
+      'produk', 'pakan', 'rekomendasi', 'saran', 'cari', 'temukan', 'butuh', 'ingin beli',
+      'jenis', 'kategori', 'harga', 'stok', 'tersedia', 'bagus', 'terbaik'
+    ];
+    
+    const isProductRequest = productKeywords.some(keyword => 
+      userMessage.toLowerCase().includes(keyword)
+    );
+
+    let products = [];
+    if (isProductRequest) {
+      // Search products based on user message
+      const searchTerms = userMessage.toLowerCase().split(' ');
+      const query = {
+        $or: [
+          { name: { $regex: searchTerms.join('|'), $options: 'i' } },
+          { description: { $regex: searchTerms.join('|'), $options: 'i' } },
+          { categoryOptions: { $regex: searchTerms.join('|'), $options: 'i' } },
+          { limbahOptions: { $regex: searchTerms.join('|'), $options: 'i' } },
+          { fisikOptions: { $regex: searchTerms.join('|'), $options: 'i' } }
+        ]
+      };
+      
+      products = await Product.find(query).limit(3);
+    }
+
+    const systemPrompt = `Kamu adalah AgroMarFeed AI yang membantu pengguna dengan pertanyaan seputar pakan ternak, pertanian, dan peternakan. Berikan jawaban yang informatif dan membantu.
+
+Jika user meminta informasi tentang produk, maka kamu harus memberikan informasi tentang produk tersebut.
+Jika user meminta informasi tentang harga, maka kamu harus memberikan informasi tentang harga produk tersebut.
+Jika user meminta informasi tentang cara penggunaan, maka kamu harus memberikan informasi tentang cara penggunaan produk tersebut.
+Jika user meminta informasi tentang manfaat, maka kamu harus memberikan informasi tentang manfaat produk tersebut.
+Jika user meminta informasi tentang komposisi, maka kamu harus memberikan informasi tentang komposisi produk tersebut.
+Jika user meminta informasi tentang kandungan nutrisi, maka kamu harus memberikan informasi tentang kandungan nutrisi produk tersebut.
+
+${products.length > 0 ? `Saya menemukan ${products.length} produk yang mungkin sesuai dengan permintaan Anda. Berikut adalah rekomendasi produk:` : ''}
+
+Jawab dengan bahasa Indonesia yang sopan dan informatif.`;
+
     const response = await axios.post(
       "https://api.openai.com/v1/chat/completions",
       {
@@ -13,7 +54,7 @@ exports.handleChat = async (req, res) => {
         messages: [
           {
             role: "system",
-            content: `Kamu adalah AgroMarFeed AI yang membantu pengguna dengan pertanyaan seputar pakan ternak, pertanian, dan peternakan. Berikan jawaban yang informatif dan membantu.`.trim(),
+            content: systemPrompt,
           },
           {
             role: "user",
@@ -29,7 +70,13 @@ exports.handleChat = async (req, res) => {
       }
     );
 
-    res.status(200).json(response.data);
+    // Add products to response if found
+    const aiResponse = response.data;
+    if (products.length > 0) {
+      aiResponse.products = products;
+    }
+
+    res.status(200).json(aiResponse);
   } catch (error) {
     console.error("Chat API error:", error.message);
     res.status(500).json({ error: "Failed to fetch AI response" });
