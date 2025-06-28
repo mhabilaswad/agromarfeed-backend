@@ -107,21 +107,65 @@ exports.updateCartItem = async (req, res) => {
 // ✅ Hapus item dari keranjang
 exports.removeFromCart = async (req, res) => {
   try {
-    const user_id = req.user?._id || req.params.user_id;
-    const { product_id } = req.params;
+    // Handle both route formats: /remove/:product_id and /remove/:user_id/:product_id
+    let user_id, product_id;
+    
+    if (req.params.user_id && req.params.product_id) {
+      // Route: /remove/:user_id/:product_id
+      user_id = req.params.user_id;
+      product_id = req.params.product_id;
+    } else {
+      // Route: /remove/:product_id (user_id in body)
+      user_id = req.user?._id || req.body.user_id;
+      product_id = req.params.product_id;
+    }
+
+    console.log('Remove from cart - user_id:', user_id, 'product_id:', product_id);
+
+    if (!user_id) {
+      return res.status(400).json({ message: 'User ID tidak ditemukan' });
+    }
+
+    if (!product_id) {
+      return res.status(400).json({ message: 'Product ID tidak ditemukan' });
+    }
 
     const cart = await Cart.findOne({ user_id });
     if (!cart) {
       return res.status(404).json({ message: 'Keranjang tidak ditemukan' });
     }
 
-    cart.cart_item = cart.cart_item.filter(item => item.product_id.toString() !== product_id);
+    console.log('Cart items before removal:', cart.cart_item.length);
+
+    const initialLength = cart.cart_item.length;
+    
+    // Filter out the item with matching product_id
+    cart.cart_item = cart.cart_item.filter(item => {
+      const itemProductId = item.product_id.toString();
+      const shouldKeep = itemProductId !== product_id;
+      console.log(`Comparing: ${itemProductId} vs ${product_id} = ${shouldKeep ? 'keep' : 'remove'}`);
+      return shouldKeep;
+    });
+
+    console.log('Cart items after removal:', cart.cart_item.length);
+
+    // Jika tidak ada item yang dihapus, kembalikan error
+    if (cart.cart_item.length === initialLength) {
+      return res.status(404).json({ 
+        message: 'Item tidak ditemukan di keranjang',
+        searchedProductId: product_id
+      });
+    }
+
     await cart.save();
 
-    res.status(200).json({ message: 'Item berhasil dihapus dari keranjang', cart });
+    res.status(200).json({ 
+      message: 'Item berhasil dihapus dari keranjang', 
+      removedProductId: product_id
+    });
   } catch (error) {
     console.error('Gagal hapus item:', error);
-    res.status(500).json({ message: 'Terjadi kesalahan server' });
+    res.status(500).json({ message: 'Terjadi kesalahan server', error: error.message });
   }
 };
 
