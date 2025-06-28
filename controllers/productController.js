@@ -8,8 +8,17 @@ async function updateStoreRating(storeId) {
     await Store.findByIdAndUpdate(storeId, { rating: 0 });
     return;
   }
-  const avgRating = products.reduce((sum, p) => sum + (p.rating || 0), 0) / products.length;
-  await Store.findByIdAndUpdate(storeId, { rating: avgRating });
+  
+  // Filter produk yang sudah direview (rating > 0)
+  const reviewedProducts = products.filter(p => p.rating > 0);
+  
+  if (reviewedProducts.length === 0) {
+    await Store.findByIdAndUpdate(storeId, { rating: 0 });
+    return;
+  }
+  
+  const avgRating = reviewedProducts.reduce((sum, p) => sum + p.rating, 0) / reviewedProducts.length;
+  await Store.findByIdAndUpdate(storeId, { rating: parseFloat(avgRating.toFixed(1)) });
 }
 
 exports.createProduct = async (req, res) => {
