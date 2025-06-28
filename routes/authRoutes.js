@@ -30,6 +30,9 @@ router.get('/google', (req, res, next) => {
 router.get('/google/callback', (req, res, next) => {
   console.log('🔄 Google OAuth callback received');
   console.log('Full callback URL:', `${req.protocol}://${req.get('host')}${req.originalUrl}`);
+  console.log('User Agent:', req.headers['user-agent']);
+  console.log('Origin:', req.headers.origin);
+  console.log('Referer:', req.headers.referer);
   
   passport.authenticate('google', (err, user, info) => {
     if (err) {
@@ -55,12 +58,12 @@ router.get('/google/callback', (req, res, next) => {
       console.log('Cookie settings - secure:', process.env.NODE_ENV === 'production');
       console.log('Cookie settings - sameSite:', process.env.NODE_ENV === 'production' ? 'none' : 'lax');
       
-      // Let express-session handle the cookie automatically
-      // Don't manually set cookie here as it conflicts with session config
-      
-      console.log('✅ Redirecting to frontend:', process.env.FRONTEND_URL);
-      // Redirect to frontend with success parameter
-      res.redirect(`${process.env.FRONTEND_URL}/?oauth=success`);
+      // Add a small delay before redirect to ensure session is saved
+      setTimeout(() => {
+        console.log('✅ Redirecting to frontend:', process.env.FRONTEND_URL);
+        // Redirect to frontend with success parameter
+        res.redirect(`${process.env.FRONTEND_URL}/?oauth=success`);
+      }, 500);
     });
   })(req, res, next);
 });
@@ -107,12 +110,23 @@ router.get('/session-debug', (req, res) => {
 
 // Current user endpoint
 router.get('/current-user', (req, res) => {
+  console.log('🔍 Current user request received');
+  console.log('Session ID:', req.sessionID);
+  console.log('Session data:', req.session);
+  console.log('User:', req.user);
+  console.log('Is authenticated:', req.isAuthenticated());
+  console.log('User Agent:', req.headers['user-agent']);
+  console.log('Origin:', req.headers.origin);
+  console.log('Cookies:', req.headers.cookie);
+  
   if (req.isAuthenticated() && req.user) {
+    console.log('✅ User authenticated, returning user data');
     res.json({
       success: true,
       user: req.user
     });
   } else {
+    console.log('❌ User not authenticated');
     res.status(401).json({
       success: false,
       message: 'Not authenticated'
@@ -157,6 +171,31 @@ router.get('/test-oauth-session', (req, res) => {
     isAuthenticated: req.isAuthenticated(),
     allCookies: req.headers.cookie,
     sessionCookie: req.cookies['agromarfeed.sid']
+  });
+});
+
+// Mobile browser debugging endpoint
+router.get('/mobile-debug', (req, res) => {
+  console.log('=== Mobile Browser Debug ===');
+  console.log('User Agent:', req.headers['user-agent']);
+  console.log('Accept:', req.headers.accept);
+  console.log('Accept-Language:', req.headers['accept-language']);
+  console.log('Accept-Encoding:', req.headers['accept-encoding']);
+  console.log('Connection:', req.headers.connection);
+  console.log('Host:', req.headers.host);
+  console.log('Origin:', req.headers.origin);
+  console.log('Referer:', req.headers.referer);
+  console.log('X-Forwarded-For:', req.headers['x-forwarded-for']);
+  console.log('X-Forwarded-Proto:', req.headers['x-forwarded-proto']);
+  console.log('All Headers:', req.headers);
+  
+  res.json({
+    userAgent: req.headers['user-agent'],
+    isMobile: /Mobile|Android|iPhone|iPad/.test(req.headers['user-agent'] || ''),
+    headers: req.headers,
+    sessionID: req.sessionID,
+    isAuthenticated: req.isAuthenticated(),
+    user: req.user
   });
 });
 
