@@ -11,7 +11,10 @@ router.get('/user/:user_id', cartController.getCartByUser);
 // ✅ Update cart item quantity
 router.put('/update', cartController.updateCartItem);
 
-// ✅ Remove item from cart
+// ✅ Remove item from cart (with user_id in URL) - MORE SPECIFIC ROUTE FIRST
+router.delete('/remove/:user_id/:product_id', cartController.removeFromCart);
+
+// ✅ Remove item from cart (with user_id in body) - LESS SPECIFIC ROUTE LAST
 router.delete('/remove/:product_id', cartController.removeFromCart);
 
 // ✅ Clear cart
