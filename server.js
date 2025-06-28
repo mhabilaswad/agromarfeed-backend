@@ -42,7 +42,7 @@ app.use(
       secure: true, // Secure in production
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      httpOnly: true,
+      httpOnly: false,
       // Don't set domain - let browser handle it
     },
     name: 'agromarfeed.sid', // Custom session name
@@ -107,7 +107,6 @@ const startServer = async () => {
   try {
     await connectDB();
     app.listen(PORT, () => {
-      console.log(`✅ Server running at http://localhost:${PORT}`);
     });
   } catch (error) {
     console.error('❌ Failed to connect DB:', error);
