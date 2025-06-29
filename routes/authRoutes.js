@@ -161,12 +161,21 @@ router.get('/session-debug', (req, res) => {
 
 // Current user endpoint
 router.get('/current-user', (req, res) => {
+  console.log('🔍 Current user request received');
+  console.log('Session ID:', req.sessionID);
+  console.log('Session data:', req.session);
+  console.log('User in session:', req.user);
+  console.log('Is authenticated:', req.isAuthenticated());
+  console.log('All cookies:', req.headers.cookie);
+  
   if (req.isAuthenticated() && req.user) {
+    console.log('✅ User authenticated, returning user data');
     res.json({
       success: true,
       user: req.user
     });
   } else {
+    console.log('❌ User not authenticated');
     res.status(401).json({
       success: false,
       message: 'Not authenticated'
