@@ -122,12 +122,52 @@ router.get('/google/callback', (req, res, next) => {
 // GitHub OAuth
 router.get('/github', passport.authenticate('github', { scope: ['user:email'] }));
 router.get('/github/callback', (req, res, next) => {
+  console.log('🔄 GitHub OAuth callback received');
+  console.log('Full callback URL:', `${req.protocol}://${req.get('host')}${req.originalUrl}`);
+  
   passport.authenticate('github', (err, user, info) => {
-    if (err) return next(err);
-    if (!user) return res.status(401).json({ message: info.message || 'GitHub login failed' });
+    if (err) {
+      console.error('❌ GitHub OAuth error:', err);
+      return next(err);
+    }
+    if (!user) {
+      console.error('❌ GitHub OAuth failed - no user:', info);
+      return res.status(401).json({ message: info.message || 'GitHub login failed' });
+    }
+    
+    console.log('✅ GitHub OAuth successful for user:', user.email);
     req.logIn(user, (err) => {
-      if (err) return next(err);
-      res.redirect(`${process.env.FRONTEND_URL}/`);
+      if (err) {
+        console.error('❌ Session login error:', err);
+        return next(err);
+      }
+      
+      console.log('✅ User session created');
+      console.log('Session ID:', req.sessionID);
+      console.log('Session data:', req.session);
+      
+      // Force session save before redirect
+      req.session.save((err) => {
+        if (err) {
+          console.error('❌ Session save error:', err);
+          return next(err);
+        }
+        
+        console.log('✅ Session saved successfully');
+        console.log('✅ Redirecting to frontend:', process.env.FRONTEND_URL);
+        
+        // Create a temporary session token for frontend
+        const sessionToken = Buffer.from(JSON.stringify({
+          sessionId: req.sessionID,
+          userId: user._id,
+          email: user.email,
+          timestamp: Date.now()
+        })).toString('base64');
+        
+        // Redirect to frontend with session token
+        const redirectUrl = `${process.env.FRONTEND_URL}/?oauth=success&token=${sessionToken}`;
+        res.redirect(redirectUrl);
+      });
     });
   })(req, res, next);
 });
@@ -287,7 +327,19 @@ router.post('/validate-oauth-token', async (req, res) => {
       });
     }
     
-    // Set session manually
+    // Check if session already exists and is valid
+    if (req.isAuthenticated() && req.user && req.user._id.toString() === user._id.toString()) {
+      console.log('✅ Session already exists and is valid for user:', user.email);
+      return res.json({
+        success: true,
+        user: user,
+        sessionID: req.sessionID,
+        message: 'Session already validated'
+      });
+    }
+    
+    // Only set session if it doesn't exist or is different
+    console.log('🔄 Setting new session for user:', user.email);
     req.session.userId = user._id;
     req.session.save((err) => {
       if (err) {
