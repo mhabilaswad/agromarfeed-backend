@@ -65,8 +65,16 @@ router.get('/google/callback', (req, res, next) => {
         console.log('✅ Session saved successfully');
         console.log('✅ Redirecting to frontend:', process.env.FRONTEND_URL);
         
-        // Redirect to frontend with success parameter and session info
-        const redirectUrl = `${process.env.FRONTEND_URL}/?oauth=success&session=${req.sessionID}`;
+        // Create a temporary session token for frontend
+        const sessionToken = Buffer.from(JSON.stringify({
+          sessionId: req.sessionID,
+          userId: user._id,
+          email: user.email,
+          timestamp: Date.now()
+        })).toString('base64');
+        
+        // Redirect to frontend with session token
+        const redirectUrl = `${process.env.FRONTEND_URL}/?oauth=success&token=${sessionToken}`;
         res.redirect(redirectUrl);
       });
     });
@@ -192,6 +200,72 @@ router.get('/oauth-session-transfer', (req, res) => {
     res.status(401).json({
       success: false,
       message: 'No valid session found'
+    });
+  }
+});
+
+// Validate session token from OAuth redirect
+router.post('/validate-oauth-token', async (req, res) => {
+  try {
+    const { token } = req.body;
+    
+    if (!token) {
+      return res.status(400).json({
+        success: false,
+        message: 'Token is required'
+      });
+    }
+    
+    // Decode the token
+    const decodedToken = JSON.parse(Buffer.from(token, 'base64').toString());
+    console.log('🔍 Validating OAuth token:', decodedToken);
+    
+    // Check if token is not expired (5 minutes)
+    const tokenAge = Date.now() - decodedToken.timestamp;
+    if (tokenAge > 5 * 60 * 1000) {
+      return res.status(401).json({
+        success: false,
+        message: 'Token expired'
+      });
+    }
+    
+    // Find user by ID
+    const User = require('../models/user/User');
+    const user = await User.findById(decodedToken.userId);
+    
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+    
+    // Set session manually
+    req.session.userId = user._id;
+    req.session.save((err) => {
+      if (err) {
+        console.error('❌ Session save error:', err);
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to save session'
+        });
+      }
+      
+      console.log('✅ Session validated and saved for user:', user.email);
+      
+      res.json({
+        success: true,
+        user: user,
+        sessionID: req.sessionID,
+        message: 'Session validated successfully'
+      });
+    });
+    
+  } catch (error) {
+    console.error('❌ Token validation error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Token validation failed'
     });
   }
 });

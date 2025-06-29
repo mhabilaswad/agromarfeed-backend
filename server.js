@@ -20,8 +20,7 @@ app.set('trust proxy', 1);
 
 // Middleware
 app.use(cors({ 
-  origin: process.env.FRONTEND_URL,
-  origin: 'https://agromarfeed.vercel.app',
+  origin: process.env.FRONTEND_URL || 'https://agromarfeed.vercel.app',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'ngrok-skip-browser-warning', 'Cookie'],
@@ -40,11 +39,11 @@ app.use(
       autoRemove: 'native'
     }),
     cookie: {
-      secure: true, // Secure in production
+      secure: process.env.NODE_ENV === 'production', // Only secure in production
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      httpOnly: false,
-      // Don't set domain - let browser handle it
+      httpOnly: true, // Changed to true for security
+      domain: process.env.NODE_ENV === 'production' ? '.vercel.app' : undefined, // Set domain for production
     },
     name: 'agromarfeed.sid', // Custom session name
   })
