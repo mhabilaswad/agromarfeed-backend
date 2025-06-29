@@ -8,12 +8,50 @@ router.post('/signup', authController.signup);
 
 // Local Login
 router.post('/login', (req, res, next) => {
+  console.log('🔍 Login attempt received');
+  console.log('Request body:', { email: req.body.email, password: req.body.password ? '[HIDDEN]' : 'missing' });
+  console.log('Session ID before auth:', req.sessionID);
+  
   passport.authenticate('local', (err, user, info) => {
-    if (err) return next(err);
-    if (!user) return res.status(401).json({ message: info.message || 'Login failed' });
+    console.log('🔍 Passport authenticate callback');
+    console.log('Error:', err);
+    console.log('User:', user ? { id: user._id, email: user.email } : 'null');
+    console.log('Info:', info);
+    
+    if (err) {
+      console.error('❌ Passport error:', err);
+      return next(err);
+    }
+    if (!user) {
+      console.error('❌ Login failed - no user:', info);
+      return res.status(401).json({ message: info.message || 'Login failed' });
+    }
+    
+    console.log('✅ User authenticated, logging in...');
     req.logIn(user, (err) => {
-      if (err) return next(err);
-      return res.json({ message: 'Login successful', user });
+      if (err) {
+        console.error('❌ Session login error:', err);
+        return next(err);
+      }
+      
+      console.log('✅ User session created successfully');
+      console.log('Session ID after login:', req.sessionID);
+      console.log('Session data:', req.session);
+      console.log('User in session:', req.user);
+      
+      // Force session save
+      req.session.save((err) => {
+        if (err) {
+          console.error('❌ Session save error:', err);
+          return next(err);
+        }
+        
+        console.log('✅ Session saved successfully');
+        console.log('Final session ID:', req.sessionID);
+        console.log('Final user:', req.user);
+        
+        return res.json({ message: 'Login successful', user });
+      });
     });
   })(req, res, next);
 });
