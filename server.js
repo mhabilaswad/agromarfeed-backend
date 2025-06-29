@@ -6,6 +6,8 @@ const passport = require('./config/passport');
 const connectDB = require('./config/db');
 const authRoutes = require('./routes/authRoutes');
 const cors = require('cors'); // Added for CORS
+const path = require('path');
+const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -18,10 +20,16 @@ if (process.env.VERCEL) {
 
 app.set('trust proxy', 1);
 
+// Create uploads directory if it doesn't exist
+const uploadsDir = path.join(__dirname, 'public', 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+  console.log('📁 Created uploads directory');
+}
+
 // Middleware
 app.use(cors({ 
-
-  origin: process.env.FRONTEND_URL || 'https://agromarfeed.vercel.app',
+  origin: [ process.env.FRONTEND_URL, 'https://agromarfeed.vercel.app', 'http://localhost:3000'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'ngrok-skip-browser-warning', 'Cookie'],
@@ -32,6 +40,10 @@ app.use(cors({
 }));
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true, limit: '5mb' }));
+
+// Serve static files from uploads directory
+app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
+
 app.use(
   session({
     secret: process.env.SESSION_SECRET,
