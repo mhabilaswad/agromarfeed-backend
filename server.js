@@ -20,27 +20,12 @@ app.set('trust proxy', 1);
 
 // Middleware
 app.use(cors({ 
-  origin: function(origin, callback) {
-    // Allow requests with no origin (like mobile apps or Postman)
-    if (!origin) return callback(null, true);
-    
-    const allowedOrigins = [
-      process.env.FRONTEND_URL,
-      'http://localhost:3000',
-      'https://agromarfeed.vercel.app',
-      'https://agromarfeed-frontend.vercel.app'
-    ];
-    
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      console.log('CORS blocked origin:', origin);
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+
+  origin: process.env.FRONTEND_URL || 'https://agromarfeed.vercel.app',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'ngrok-skip-browser-warning', 'Cookie', 'X-Requested-With'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'ngrok-skip-browser-warning', 'Cookie'],
+
   exposedHeaders: ['Set-Cookie'],
   preflightContinue: false,
   optionsSuccessStatus: 204
@@ -62,7 +47,6 @@ app.use(
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
       httpOnly: true, // Changed to true for security
-      domain: process.env.NODE_ENV === 'production' ? undefined : undefined, // Let browser handle domain
     },
     name: 'agromarfeed.sid',
   })

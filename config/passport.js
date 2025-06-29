@@ -247,28 +247,44 @@ passport.use(new LocalStrategy({
   usernameField: 'email',
 }, async (email, password, done) => {
   try {
+    console.log('🔍 Local Strategy - Authentication attempt');
+    console.log('Email:', email);
+    console.log('Password provided:', password ? '[HIDDEN]' : 'missing');
+    
     const user = await User.findOne({ email });
+    console.log('User found:', user ? { id: user._id, email: user.email, isVerified: user.isVerified } : 'null');
 
     if (!user) {
+      console.log('❌ No user found with email:', email);
       return done(null, false, { message: 'No user found' });
     }
 
     if (!user.isVerified) {
+      console.log('❌ User not verified:', user.email);
       return done(null, false, { message: 'Please verify your email first' });
     }
 
     const account = user.accounts.find(acc => acc.provider === 'email');
+    console.log('Email account found:', account ? { provider: account.provider, hasAccessToken: !!account.access_token } : 'null');
+    
     if (!account || !account.access_token) {
+      console.log('❌ No email account or access_token found');
       return done(null, false, { message: 'Invalid credentials' });
     }
 
+    console.log('🔍 Comparing passwords...');
     const isValid = await bcrypt.compare(password, account.access_token);
+    console.log('Password comparison result:', isValid);
+    
     if (!isValid) {
+      console.log('❌ Password comparison failed');
       return done(null, false, { message: 'Invalid credentials' });
     }
 
+    console.log('✅ Local Strategy - Authentication successful for:', user.email);
     return done(null, user);
   } catch (error) {
+    console.error('❌ Local Strategy error:', error);
     return done(error);
   }
 }));
