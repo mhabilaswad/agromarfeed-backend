@@ -7,45 +7,198 @@ exports.handleChat = async (req, res) => {
   const { userMessage } = req.body;
 
   try {
-    // Check if user is asking for product recommendations
-    const productKeywords = [
-      'produk', 'pakan', 'rekomendasi', 'saran', 'cari', 'temukan', 'butuh', 'ingin beli',
-      'jenis', 'kategori', 'harga', 'stok', 'tersedia', 'bagus', 'terbaik'
-    ];
+    // Improved product detection with more specific keywords
+    const productKeywords = {
+      // Direct product requests
+      direct: ['produk', 'pakan', 'rekomendasi', 'saran', 'cari', 'temukan', 'butuh', 'ingin beli', 'mau beli', 'beli'],
+      
+      // Animal types
+      animals: ['ayam', 'bebek', 'sapi', 'kambing', 'domba', 'ikan', 'lele', 'gurame', 'nila', 'udang', 'ternak', 'unggas'],
+      
+      // Product categories
+      categories: ['ruminansia', 'non-ruminansia', 'akuakultur', 'pelet', 'fermentasi', 'serbuk', 'granul'],
+      
+      // Specific needs
+      needs: ['pertumbuhan', 'gemuk', 'sehat', 'produksi telur', 'daging', 'susu', 'pemeliharaan'],
+      
+      // Price and budget
+      price: ['harga', 'murah', 'mahal', 'budget', 'hemat', 'efisien', 'biaya'],
+      
+      // Quality and performance
+      quality: ['bagus', 'terbaik', 'berkualitas', 'premium', 'standar', 'hasil', 'efektif']
+    };
+
+    // Check if user is asking for product recommendations with more sophisticated logic
+    const userMessageLower = userMessage.toLowerCase();
     
-    const isProductRequest = productKeywords.some(keyword => 
-      userMessage.toLowerCase().includes(keyword)
+    // Check for direct product requests
+    const hasDirectRequest = productKeywords.direct.some(keyword => 
+      userMessageLower.includes(keyword)
+    );
+    
+    // Check for animal mentions
+    const hasAnimalMention = productKeywords.animals.some(keyword => 
+      userMessageLower.includes(keyword)
+    );
+    
+    // Check for category mentions
+    const hasCategoryMention = productKeywords.categories.some(keyword => 
+      userMessageLower.includes(keyword)
+    );
+    
+    // Check for specific needs
+    const hasSpecificNeed = productKeywords.needs.some(keyword => 
+      userMessageLower.includes(keyword)
+    );
+    
+    // Check for price-related queries
+    const hasPriceQuery = productKeywords.price.some(keyword => 
+      userMessageLower.includes(keyword)
     );
 
+    // Determine if this is a product request
+    const isProductRequest = hasDirectRequest || 
+                           (hasAnimalMention && (hasSpecificNeed || hasCategoryMention)) ||
+                           (hasCategoryMention && hasSpecificNeed) ||
+                           (hasPriceQuery && hasAnimalMention);
+
     let products = [];
+    let productContext = "";
+    
     if (isProductRequest) {
-      // Search products based on user message
-      const searchTerms = userMessage.toLowerCase().split(' ');
-      const query = {
-        $or: [
-          { name: { $regex: searchTerms.join('|'), $options: 'i' } },
-          { description: { $regex: searchTerms.join('|'), $options: 'i' } },
-          { categoryOptions: { $regex: searchTerms.join('|'), $options: 'i' } },
-          { limbahOptions: { $regex: searchTerms.join('|'), $options: 'i' } },
-          { fisikOptions: { $regex: searchTerms.join('|'), $options: 'i' } }
-        ]
-      };
+      // Build more sophisticated search query
+      const searchTerms = [];
       
-      products = await Product.find(query).limit(3);
+      // Extract animal types mentioned
+      const mentionedAnimals = productKeywords.animals.filter(animal => 
+        userMessageLower.includes(animal)
+      );
+      
+      // Extract categories mentioned
+      const mentionedCategories = productKeywords.categories.filter(category => 
+        userMessageLower.includes(category)
+      );
+      
+      // Extract needs mentioned
+      const mentionedNeeds = productKeywords.needs.filter(need => 
+        userMessageLower.includes(need)
+      );
+
+      // Build search query based on context
+      let query = {};
+      
+      if (mentionedAnimals.length > 0 || mentionedCategories.length > 0) {
+        // Search by category and animal type
+        const categoryQueries = [];
+        
+        if (mentionedAnimals.includes('ayam') || mentionedAnimals.includes('bebek') || mentionedAnimals.includes('unggas')) {
+          categoryQueries.push({ categoryOptions: { $regex: 'non-ruminansia', $options: 'i' } });
+        }
+        
+        if (mentionedAnimals.includes('sapi') || mentionedAnimals.includes('kambing') || mentionedAnimals.includes('domba')) {
+          categoryQueries.push({ categoryOptions: { $regex: 'ruminansia', $options: 'i' } });
+        }
+        
+        if (mentionedAnimals.includes('ikan') || mentionedAnimals.includes('lele') || mentionedAnimals.includes('gurame') || 
+            mentionedAnimals.includes('nila') || mentionedAnimals.includes('udang')) {
+          categoryQueries.push({ categoryOptions: { $regex: 'akuakultur', $options: 'i' } });
+        }
+        
+        if (mentionedCategories.length > 0) {
+          mentionedCategories.forEach(category => {
+            categoryQueries.push({ 
+              $or: [
+                { categoryOptions: { $regex: category, $options: 'i' } },
+                { fisikOptions: { $regex: category, $options: 'i' } }
+              ]
+            });
+          });
+        }
+        
+        if (categoryQueries.length > 0) {
+          query.$or = categoryQueries;
+        }
+      } else {
+        // General search in name, description, and categories
+        const generalTerms = userMessageLower.split(' ').filter(word => word.length > 2);
+        if (generalTerms.length > 0) {
+          query.$or = [
+            { name: { $regex: generalTerms.join('|'), $options: 'i' } },
+            { description: { $regex: generalTerms.join('|'), $options: 'i' } },
+            { categoryOptions: { $regex: generalTerms.join('|'), $options: 'i' } },
+            { limbahOptions: { $regex: generalTerms.join('|'), $options: 'i' } },
+            { fisikOptions: { $regex: generalTerms.join('|'), $options: 'i' } }
+          ];
+        }
+      }
+      
+      // Execute search
+      if (Object.keys(query).length > 0) {
+        products = await Product.find(query).limit(3);
+      }
+      
+      // Build context for AI
+      if (products.length > 0) {
+        const animalContext = mentionedAnimals.length > 0 ? `untuk ${mentionedAnimals.join(', ')}` : '';
+        const needContext = mentionedNeeds.length > 0 ? `dengan fokus pada ${mentionedNeeds.join(', ')}` : '';
+        const priceContext = hasPriceQuery ? 'dengan pertimbangan harga yang sesuai' : '';
+        
+        productContext = `Saya menemukan ${products.length} produk yang mungkin sesuai dengan permintaan Anda${animalContext}${needContext}${priceContext}. Berikut adalah rekomendasi produk:`;
+        
+        // Add detailed product information for AI context
+        const productDetails = products.map(product => `
+Produk: ${product.name}
+Kategori: ${product.categoryOptions}
+Bentuk Fisik: ${product.fisikOptions}
+Bahan Dasar: ${product.limbahOptions}
+Harga: Rp${product.price.toLocaleString()}
+Stok: ${product.stock}
+Rating: ${product.rating || 0}/5
+Deskripsi: ${product.description}
+Varian Berat & Harga: ${product.weights.map(w => `${w.value}: Rp${w.price.toLocaleString()}`).join(', ')}
+        `).join('\n');
+        
+        productContext += `\n\n**DETAIL PRODUK YANG TERSEDIA:**\n${productDetails}`;
+      } else if (isProductRequest) {
+        // No products found but user asked for products
+        const animalContext = mentionedAnimals.length > 0 ? `untuk ${mentionedAnimals.join(', ')}` : '';
+        const needContext = mentionedNeeds.length > 0 ? `dengan kebutuhan ${mentionedNeeds.join(', ')}` : '';
+        const categoryContext = mentionedCategories.length > 0 ? `dalam kategori ${mentionedCategories.join(', ')}` : '';
+        
+        productContext = `Maaf, saat ini belum ada produk yang tersedia${animalContext}${needContext}${categoryContext} di toko AgroMarFeed. Silakan coba kata kunci lain atau lihat produk yang tersedia di katalog kami.`;
+      }
     }
 
-    const systemPrompt = `Kamu adalah AgroMarFeed AI yang membantu pengguna dengan pertanyaan seputar pakan ternak, pertanian, dan peternakan. Berikan jawaban yang informatif dan membantu.
+    // Enhanced system prompt based on context
+    let systemPrompt = `Kamu adalah AgroMarFeed AI yang membantu pengguna dengan pertanyaan seputar pakan ternak, pertanian, dan peternakan. 
 
-Jika user meminta informasi tentang produk, maka kamu harus memberikan informasi tentang produk tersebut.
-Jika user meminta informasi tentang harga, maka kamu harus memberikan informasi tentang harga produk tersebut.
-Jika user meminta informasi tentang cara penggunaan, maka kamu harus memberikan informasi tentang cara penggunaan produk tersebut.
-Jika user meminta informasi tentang manfaat, maka kamu harus memberikan informasi tentang manfaat produk tersebut.
-Jika user meminta informasi tentang komposisi, maka kamu harus memberikan informasi tentang komposisi produk tersebut.
-Jika user meminta informasi tentang kandungan nutrisi, maka kamu harus memberikan informasi tentang kandungan nutrisi produk tersebut.
+${isProductRequest ? `
+**KONTEKS PRODUK:** ${productContext}
 
-${products.length > 0 ? `Saya menemukan ${products.length} produk yang mungkin sesuai dengan permintaan Anda. Berikut adalah rekomendasi produk:` : ''}
+**PANDUAN UNTUK REKOMENDASI PRODUK:**
+- HANYA berikan informasi tentang produk yang ada dalam database (yang akan saya berikan)
+- JANGAN memberikan informasi umum tentang pakan yang tidak ada dalam database
+- Jika user meminta produk untuk hewan tertentu, jelaskan mengapa produk tersebut cocok berdasarkan deskripsi produk yang ada
+- Jika user membahas kebutuhan spesifik (pertumbuhan, kesehatan, dll), hubungkan dengan manfaat produk berdasarkan deskripsi yang ada
+- Jika user membahas harga, berikan konteks nilai ekonomis produk berdasarkan harga yang ada
+- Jelaskan keunggulan produk berdasarkan deskripsi yang tersedia
+- Berikan tips penggunaan berdasarkan informasi yang ada di deskripsi produk
+- Jika tidak ada produk yang cocok dalam database, katakan dengan jujur bahwa produk tersebut belum tersedia di toko kami dan sarankan untuk melihat katalog produk yang tersedia
 
-Jawab dengan bahasa Indonesia yang sopan dan informatif.`;
+**PENTING:** Semua informasi yang kamu berikan HARUS berdasarkan data produk yang ada dalam database, bukan pengetahuan umum tentang pakan ternak.
+` : `
+**PANDUAN UMUM:**
+- Berikan jawaban yang informatif dan membantu
+- Gunakan bahasa yang mudah dipahami petani dan peternak
+- Jika user bertanya tentang cara penggunaan pakan, jelaskan berdasarkan informasi yang tersedia
+- Jika user bertanya tentang manfaat, jelaskan berdasarkan deskripsi produk yang ada
+- Jika user bertanya tentang komposisi, jelaskan berdasarkan informasi yang tersedia
+- Jika user bertanya tentang perbandingan, berikan analisis yang objektif berdasarkan data yang ada
+- JANGAN memberikan informasi umum yang tidak ada dalam database produk kami
+- Jika user bertanya tentang produk yang tidak ada di database, sarankan untuk melihat katalog produk yang tersedia
+`}
+
+Jawab dengan bahasa Indonesia yang sopan, informatif, dan HANYA berdasarkan data produk yang tersedia di database AgroMarFeed.`;
 
     const response = await axios.post(
       "https://api.openai.com/v1/chat/completions",
