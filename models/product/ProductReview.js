@@ -11,6 +11,10 @@ const productReviewSchema = new mongoose.Schema({
     ref: 'User',
     required: true,
   },
+  order_id: {
+    type: String,
+    required: true,
+  },
   rating: Number,
   ulasan: String,
   gambar: String,

@@ -59,12 +59,12 @@ const updateProductAverageRating = async (productId) => {
 // Buat review baru
 const createReview = async (req, res) => {
   try {
-    const { product_id, rating, ulasan, gambar } = req.body;
+    const { product_id, rating, ulasan, gambar, order_id } = req.body;
     const user_id = req.user?._id || req.body.user_id;
 
     // Validasi input
-    if (!product_id || !rating || !ulasan || !user_id) {
-      return res.status(400).json({ message: 'Semua field wajib diisi.' });
+    if (!product_id || !rating || !ulasan || !user_id || !order_id) {
+      return res.status(400).json({ message: 'Semua field wajib diisi (termasuk order_id).' });
     }
 
     if (rating < 1 || rating > 5) {
@@ -85,25 +85,32 @@ const createReview = async (req, res) => {
       return res.status(404).json({ message: 'Produk tidak ditemukan.' });
     }
 
-    // CEK: User pernah membeli produk ini dan status ordernya delivered
+    // CEK: User pernah membeli produk ini dalam order ini dan status ordernya delivered
     const deliveredOrder = await Order.findOne({
       user_id,
+      orderId: order_id,
       status: 'delivered',
       'order_item.product_id': product_id
     });
 
     if (!deliveredOrder) {
-      return res.status(403).json({ message: 'Kamu hanya bisa review produk yang sudah kamu terima.' });
+      return res.status(403).json({ message: 'Kamu hanya bisa review produk yang sudah kamu terima dalam order ini.' });
     }
 
-    const existingReview = await ProductReview.findOne({ product_id, user_id });
+    // CEK: User belum review order ini (satu order hanya bisa direview sekali)
+    const existingReview = await ProductReview.findOne({ 
+      user_id, 
+      order_id 
+    });
+    
     if (existingReview) {
-      return res.status(400).json({ message: 'Kamu sudah memberikan ulasan untuk produk ini.' });
+      return res.status(400).json({ message: 'Kamu sudah memberikan ulasan untuk order ini.' });
     }
 
     const newReview = await ProductReview.create({
       product_id,
       user_id,
+      order_id,
       rating,
       ulasan,
       ...(gambar && { gambar }),
@@ -142,7 +149,7 @@ const getReviewsByProduct = async (req, res) => {
 const getReviewsByUser = async (req, res) => {
   try {
     const { user_id } = req.params;
-    const reviews = await ProductReview.find({ user_id }).select('product_id');
+    const reviews = await ProductReview.find({ user_id }).select('product_id order_id');
     res.status(200).json(reviews);
   } catch (error) {
     console.error('Gagal mengambil review user:', error);
