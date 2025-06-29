@@ -20,10 +20,12 @@ app.set('trust proxy', 1);
 
 // Middleware
 app.use(cors({ 
+
   origin: process.env.FRONTEND_URL || 'https://agromarfeed.vercel.app',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'ngrok-skip-browser-warning', 'Cookie'],
+
   exposedHeaders: ['Set-Cookie'],
   preflightContinue: false,
   optionsSuccessStatus: 204
@@ -33,7 +35,7 @@ app.use(express.urlencoded({ extended: true, limit: '5mb' }));
 app.use(
   session({
     secret: process.env.SESSION_SECRET,
-    resave: true, // Changed to true for better session persistence
+    resave: true,
     saveUninitialized: false,
     store: MongoStore.create({ 
       mongoUrl: process.env.MONGODB_URI,
@@ -46,7 +48,7 @@ app.use(
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
       httpOnly: true, // Changed to true for security
     },
-    name: 'agromarfeed.sid', // Custom session name
+    name: 'agromarfeed.sid',
   })
 );
 app.use(passport.initialize());

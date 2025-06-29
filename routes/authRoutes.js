@@ -68,6 +68,9 @@ router.get('/google', (req, res, next) => {
 router.get('/google/callback', (req, res, next) => {
   console.log('🔄 Google OAuth callback received');
   console.log('Full callback URL:', `${req.protocol}://${req.get('host')}${req.originalUrl}`);
+  console.log('User Agent:', req.headers['user-agent']);
+  console.log('Origin:', req.headers.origin);
+  console.log('Referer:', req.headers.referer);
   
   passport.authenticate('google', (err, user, info) => {
     if (err) {
@@ -93,6 +96,7 @@ router.get('/google/callback', (req, res, next) => {
       console.log('Cookie settings - secure:', process.env.NODE_ENV === 'production');
       console.log('Cookie settings - sameSite:', process.env.NODE_ENV === 'production' ? 'none' : 'lax');
       
+
       // Force session save before redirect
       req.session.save((err) => {
         if (err) {
@@ -115,6 +119,7 @@ router.get('/google/callback', (req, res, next) => {
         const redirectUrl = `${process.env.FRONTEND_URL}/?oauth=success&token=${sessionToken}`;
         res.redirect(redirectUrl);
       });
+
     });
   })(req, res, next);
 });
@@ -204,9 +209,11 @@ router.get('/current-user', (req, res) => {
   console.log('🔍 Current user request received');
   console.log('Session ID:', req.sessionID);
   console.log('Session data:', req.session);
+
   console.log('User in session:', req.user);
   console.log('Is authenticated:', req.isAuthenticated());
   console.log('All cookies:', req.headers.cookie);
+
   
   if (req.isAuthenticated() && req.user) {
     console.log('✅ User authenticated, returning user data');
@@ -372,6 +379,7 @@ router.post('/validate-oauth-token', async (req, res) => {
       message: 'Token validation failed'
     });
   }
+
 });
 
 module.exports = router;
