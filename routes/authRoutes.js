@@ -55,12 +55,20 @@ router.get('/google/callback', (req, res, next) => {
       console.log('Cookie settings - secure:', process.env.NODE_ENV === 'production');
       console.log('Cookie settings - sameSite:', process.env.NODE_ENV === 'production' ? 'none' : 'lax');
       
-      // Let express-session handle the cookie automatically
-      // Don't manually set cookie here as it conflicts with session config
-      
-      console.log('✅ Redirecting to frontend:', process.env.FRONTEND_URL);
-      // Redirect to frontend with success parameter
-      res.redirect(`${process.env.FRONTEND_URL}/?oauth=success`);
+      // Force session save before redirect
+      req.session.save((err) => {
+        if (err) {
+          console.error('❌ Session save error:', err);
+          return next(err);
+        }
+        
+        console.log('✅ Session saved successfully');
+        console.log('✅ Redirecting to frontend:', process.env.FRONTEND_URL);
+        
+        // Redirect to frontend with success parameter and session info
+        const redirectUrl = `${process.env.FRONTEND_URL}/?oauth=success&session=${req.sessionID}`;
+        res.redirect(redirectUrl);
+      });
     });
   })(req, res, next);
 });
@@ -158,6 +166,34 @@ router.get('/test-oauth-session', (req, res) => {
     allCookies: req.headers.cookie,
     sessionCookie: req.cookies['agromarfeed.sid']
   });
+});
+
+// Session transfer endpoint for OAuth
+router.get('/oauth-session-transfer', (req, res) => {
+  console.log('🔄 OAuth session transfer requested');
+  console.log('Session ID:', req.sessionID);
+  console.log('User:', req.user);
+  console.log('Is authenticated:', req.isAuthenticated());
+  
+  if (req.isAuthenticated() && req.user) {
+    // Set CORS headers for cross-domain cookie transfer
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Origin', process.env.FRONTEND_URL);
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    
+    res.json({
+      success: true,
+      user: req.user,
+      sessionID: req.sessionID,
+      message: 'Session transfer successful'
+    });
+  } else {
+    res.status(401).json({
+      success: false,
+      message: 'No valid session found'
+    });
+  }
 });
 
 module.exports = router;
