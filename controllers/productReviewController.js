@@ -122,14 +122,18 @@ const createReview = async (req, res) => {
 const getReviewsByProduct = async (req, res) => {
   try {
     const { product_id } = req.params;
+    console.log('🔍 Fetching reviews for product:', product_id);
 
     const reviews = await ProductReview.find({ product_id })
-      .populate('user_id', 'name') // Tampilkan nama user
+      .populate('user_id', 'name email') // Populate user name and email
       .sort({ createdAt: -1 });
+
+    console.log('✅ Found reviews:', reviews.length);
+    console.log('📝 Reviews data:', reviews);
 
     res.status(200).json(reviews);
   } catch (error) {
-    console.error('Gagal mengambil review:', error);
+    console.error('❌ Gagal mengambil review:', error);
     res.status(500).json({ message: 'Terjadi kesalahan server.' });
   }
 };
