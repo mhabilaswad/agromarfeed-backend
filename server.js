@@ -20,7 +20,8 @@ app.set('trust proxy', 1);
 
 // Middleware
 app.use(cors({ 
-  origin: process.env.FRONTEND_URL, 
+  origin: process.env.FRONTEND_URL,
+  origin: 'https://agromarfeed.vercel.app',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'ngrok-skip-browser-warning', 'Cookie'],
