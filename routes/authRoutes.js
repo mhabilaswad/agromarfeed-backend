@@ -327,9 +327,10 @@ router.post('/validate-oauth-token', async (req, res) => {
       });
     }
     
-    // Check if session already exists and is valid
+    // Check if session already exists and is valid for the same user
     if (req.isAuthenticated() && req.user && req.user._id.toString() === user._id.toString()) {
       console.log('✅ Session already exists and is valid for user:', user.email);
+      console.log('Session ID:', req.sessionID);
       return res.json({
         success: true,
         user: user,
@@ -338,19 +339,23 @@ router.post('/validate-oauth-token', async (req, res) => {
       });
     }
     
-    // Only set session if it doesn't exist or is different
-    console.log('🔄 Setting new session for user:', user.email);
-    req.session.userId = user._id;
-    req.session.save((err) => {
+    // If session exists but for different user, or no session exists
+    console.log('🔄 Setting session for user:', user.email);
+    console.log('Current session ID:', req.sessionID);
+    console.log('Current user in session:', req.user ? req.user.email : 'none');
+    
+    // Use req.logIn to properly set the session (same as OAuth callback)
+    req.logIn(user, (err) => {
       if (err) {
-        console.error('❌ Session save error:', err);
+        console.error('❌ Session login error:', err);
         return res.status(500).json({
           success: false,
-          message: 'Failed to save session'
+          message: 'Failed to set session'
         });
       }
       
-      console.log('✅ Session validated and saved for user:', user.email);
+      console.log('✅ Session set successfully for user:', user.email);
+      console.log('New session ID:', req.sessionID);
       
       res.json({
         success: true,
