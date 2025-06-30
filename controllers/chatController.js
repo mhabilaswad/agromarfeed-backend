@@ -4,6 +4,9 @@ const axios = require("axios");
 const Product = require("../models/product/Product");
 const fs = require('fs');
 const path = require('path');
+const OpenAI = require("openai");
+const { toFile } = OpenAI;
+const { PassThrough } = require('stream');
 
 exports.handleChat = async (req, res) => {
   const { userMessage } = req.body;
@@ -319,12 +322,7 @@ exports.handleEnhanceImage = async (req, res) => {
     }
 
     // 1. Validate product type using OpenAI
-    const validationPrompt = `Apakah produk berikut ini merupakan produk pakan ternak yang benar-benar berbasis limbah pertanian atau limbah kelautan (bukan pakan komersial biasa, bukan makanan manusia, bukan produk olahan lain)?
-
-Nama Produk: ${name}
-Deskripsi Produk: ${description}
-
-Jawab hanya dengan salah satu kata berikut: "YA" jika benar produk limbah pertanian/kelautan untuk pakan ternak, atau "TIDAK" jika bukan.`;
+    const validationPrompt = `Apakah produk berikut ini merupakan produk pakan ternak yang benar-benar berbasis limbah pertanian atau limbah kelautan (bukan pakan komersial biasa, bukan makanan manusia, bukan produk olahan lain)?\n\nNama Produk: ${name}\nDeskripsi Produk: ${description}\n\nJawab hanya dengan salah satu kata berikut: "YA" jika benar produk limbah pertanian/kelautan untuk pakan ternak, atau "TIDAK" jika bukan.`;
     const validationRes = await axios.post(
       'https://api.openai.com/v1/chat/completions',
       {
@@ -348,47 +346,31 @@ Jawab hanya dengan salah satu kata berikut: "YA" jika benar produk limbah pertan
       return res.status(400).json({ error: 'Produk tidak sesuai ketentuan. Hanya produk pakan limbah pertanian atau kelautan yang diperbolehkan.' });
     }
 
-    // Prompt with product name and description
-    const prompt = `Generate an ultra-realistic product photo for e-commerce with the following detailed requirements:
+    // 2. Image edit with OpenAI SDK
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-    - Product Name: ${name}
-    - Product Description: ${description}
-    
-    Requirements:
-    1. The product must look like a real physical agricultural/maritime waste-based animal feed (e.g., fermented rice straw, dried seaweed, fish meal, cassava pulp, etc.).
-    2. Use textures, colors, and surface details based on real organic agricultural/marine byproducts used in animal feed.
-    3. The object must appear natural, clean, and well-processed (e.g., dried, chopped, granulated, or flaked if applicable), similar to real feed products.
-    4. The product should be centered and prominently displayed.
-    5. Use a flat-lay or front-facing studio shot angle.
-    6. The background must be 100% pure white — no shadows, gradients, or reflections.
-    7. The lighting must be even and professional, with no harsh shadows.
-    8. Make the result look attractive, trustworthy, and highly suitable for an online product catalog on an e-commerce website.
-    9. Emphasize organic, sustainable, and eco-friendly impression without adding unnecessary labels or icons.
-    
-    Output must be a high-quality, photorealistic image that can be used as the main photo on a product page for an e-commerce platform selling animal feed made from agricultural and maritime waste materials.`;
-    
-    const response = await axios.post(
-      'https://api.openai.com/v1/images/generations',
-      {
-        model: 'dall-e-3',
-        prompt: prompt,
-        n: 1,
-        size: '1024x1024',
-        response_format: 'b64_json'
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-      }
-    );
+    // Convert multer memory buffer to stream for OpenAI
+    const stream = new PassThrough();
+    stream.end(file.buffer);
+    const imageFile = await toFile(stream, file.originalname, {
+      type: file.mimetype,
+    });
 
-    const imageBase64 = response.data.data?.[0]?.b64_json;
-    if (imageBase64) {
-      return res.status(200).json({ image: imageBase64 });
+    // Prompt for image edit
+    const prompt = `Ambil objek utama dari gambar produk berikut (produk: ${name}), letakkan di tengah gambar dengan background putih bersih (clear white), dan tambahkan watermark bertuliskan \"Agromarfeed.com\" berwarna kuning yang mengambang di atas objek (floating, tidak menutupi produk). Jangan tambahkan elemen lain. Buat hasilnya cocok untuk katalog e-commerce.`;
+
+    // Call OpenAI image edit API
+    const response = await openai.images.edit({
+      model: "gpt-image-1",
+      image: [imageFile],
+      prompt,
+    });
+
+    const image_base64 = response.data[0]?.b64_json;
+    if (image_base64) {
+      return res.status(200).json({ image: image_base64 });
     } else {
-      return res.status(500).json({ error: 'No image generated', openai: response.data });
+      return res.status(500).json({ error: 'No image generated', openai: response });
     }
   } catch (error) {
     console.error('Enhance Image API error:', error.message, error.response?.data);
