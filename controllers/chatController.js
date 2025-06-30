@@ -2,6 +2,8 @@
 require("dotenv").config();
 const axios = require("axios");
 const Product = require("../models/product/Product");
+const fs = require('fs');
+const path = require('path');
 
 exports.handleChat = async (req, res) => {
   const { userMessage } = req.body;
@@ -302,5 +304,94 @@ Kalau deskripsi yang diberikan bukan merupakan deskripsi produk dari Produk Limb
   } catch (error) {
     console.error("Review API error:", error.message);
     res.status(500).json({ error: "Failed to fetch AI review" });
+  }
+};
+
+exports.handleEnhanceImage = async (req, res) => {
+  try {
+    const file = req.file;
+    const { name, description } = req.body;
+    if (!file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+    if (!name || !description) {
+      return res.status(400).json({ error: 'Nama produk dan deskripsi wajib diisi untuk AI Edit.' });
+    }
+
+    // 1. Validate product type using OpenAI
+    const validationPrompt = `Apakah produk berikut ini merupakan produk pakan ternak yang benar-benar berbasis limbah pertanian atau limbah kelautan (bukan pakan komersial biasa, bukan makanan manusia, bukan produk olahan lain)?
+
+Nama Produk: ${name}
+Deskripsi Produk: ${description}
+
+Jawab hanya dengan salah satu kata berikut: "YA" jika benar produk limbah pertanian/kelautan untuk pakan ternak, atau "TIDAK" jika bukan.`;
+    const validationRes = await axios.post(
+      'https://api.openai.com/v1/chat/completions',
+      {
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: 'Kamu adalah asisten validasi produk pakan limbah.' },
+          { role: 'user', content: validationPrompt },
+        ],
+        max_tokens: 5,
+        temperature: 0,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+    const validationText = validationRes.data.choices?.[0]?.message?.content?.trim().toUpperCase();
+    if (!validationText || !validationText.startsWith('YA')) {
+      return res.status(400).json({ error: 'Produk tidak sesuai ketentuan. Hanya produk pakan limbah pertanian atau kelautan yang diperbolehkan.' });
+    }
+
+    // Prompt with product name and description
+    const prompt = `Generate an ultra-realistic product photo for e-commerce with the following detailed requirements:
+
+    - Product Name: ${name}
+    - Product Description: ${description}
+    
+    Requirements:
+    1. The product must look like a real physical agricultural/maritime waste-based animal feed (e.g., fermented rice straw, dried seaweed, fish meal, cassava pulp, etc.).
+    2. Use textures, colors, and surface details based on real organic agricultural/marine byproducts used in animal feed.
+    3. The object must appear natural, clean, and well-processed (e.g., dried, chopped, granulated, or flaked if applicable), similar to real feed products.
+    4. The product should be centered and prominently displayed.
+    5. Use a flat-lay or front-facing studio shot angle.
+    6. The background must be 100% pure white — no shadows, gradients, or reflections.
+    7. The lighting must be even and professional, with no harsh shadows.
+    8. Make the result look attractive, trustworthy, and highly suitable for an online product catalog on an e-commerce website.
+    9. Emphasize organic, sustainable, and eco-friendly impression without adding unnecessary labels or icons.
+    
+    Output must be a high-quality, photorealistic image that can be used as the main photo on a product page for an e-commerce platform selling animal feed made from agricultural and maritime waste materials.`;
+    
+    const response = await axios.post(
+      'https://api.openai.com/v1/images/generations',
+      {
+        model: 'dall-e-3',
+        prompt: prompt,
+        n: 1,
+        size: '1024x1024',
+        response_format: 'b64_json'
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+
+    const imageBase64 = response.data.data?.[0]?.b64_json;
+    if (imageBase64) {
+      return res.status(200).json({ image: imageBase64 });
+    } else {
+      return res.status(500).json({ error: 'No image generated', openai: response.data });
+    }
+  } catch (error) {
+    console.error('Enhance Image API error:', error.message, error.response?.data);
+    res.status(500).json({ error: 'Failed to enhance image', details: error.message, openai: error.response?.data });
   }
 };
