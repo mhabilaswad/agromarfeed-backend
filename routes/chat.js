@@ -2,7 +2,8 @@ const express = require("express");
 const router = express.Router();
 const { handleChat, handleReview, handleEnhanceImage } = require("../controllers/chatController");
 const multer = require('multer');
-const upload = multer({ dest: 'public/uploads/' });
+// Use memory storage for serverless compatibility
+const upload = multer({ storage: multer.memoryStorage() });
 
 router.post('/', handleChat);
 router.post('/review', handleReview);
