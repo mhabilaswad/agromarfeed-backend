@@ -287,7 +287,7 @@ Contoh struktur yang baik:
 - Keunggulan dibanding pakan lain
 Namun jangan selalu begitu stukturnya, buat variasi yang berbeda setiap generate.
 Jangan terlalu banyak spasi kosong. dan /n berlebih.
-Kalau deskripsi yang diberikan bukan merupakan deskripsi produk dari Produk Limbah Pertanian maupun maritim, maka bilang saja Sepertinya itu bukan produk limbah untuk pakan, mohon masukkan deskripsi yang benar. Tapi kalau sudah mendekati (seperti menyebutkan nama hewannya dan limbah) maka tetap jawab saja`.trim(),
+Kalau deskripsi yang diberikan bukan merupakan deskripsi produk dari Produk Limbah Pertanian maupun marine, maka bilang saja Sepertinya itu bukan produk limbah untuk pakan, mohon masukkan deskripsi yang benar. Tapi kalau sudah mendekati (seperti menyebutkan nama hewannya dan limbah) maka tetap jawab saja`.trim(),
           },
           {
             role: "user",
