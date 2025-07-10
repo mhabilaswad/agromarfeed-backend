@@ -9,6 +9,15 @@ const cors = require('cors'); // Added for CORS
 const path = require('path');
 const fs = require('fs');
 
+// Disable all console output in production (backend), kecuali console.error
+if (process.env.NODE_ENV === 'production') {
+  console.log = function () {};
+  console.warn = function () {};
+  console.info = function () {};
+  console.debug = function () {};
+  // console.error tetap tampil
+}
+
 const app = express();
 const PORT = process.env.PORT || 4000;
 
