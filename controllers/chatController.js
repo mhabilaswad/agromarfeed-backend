@@ -310,6 +310,60 @@ Kalau deskripsi yang diberikan bukan merupakan deskripsi produk dari Produk Limb
   }
 };
 
+exports.handleValidation = async (req, res) => {
+  const { name, description } = req.body;
+
+  try {
+    if (!name || !description) {
+      return res.status(400).json({ 
+        error: 'Nama produk dan deskripsi wajib diisi.',
+        isValid: false 
+      });
+    }
+
+    // Validate product type using OpenAI
+    const validationPrompt = `Apakah produk berikut ini merupakan produk pakan ternak yang benar-benar berbasis limbah pertanian atau limbah kelautan (bukan pakan komersial biasa, bukan makanan manusia, bukan produk olahan lain)?\n\nNama Produk: ${name}\nDeskripsi Produk: ${description}\n\nJawab hanya dengan salah satu kata berikut: "YA" jika benar produk limbah pertanian/kelautan untuk pakan ternak, atau "TIDAK" jika bukan.`;
+
+    const validationRes = await axios.post(
+      'https://api.openai.com/v1/chat/completions',
+      {
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: 'Kamu adalah asisten validasi produk pakan limbah.' },
+          { role: 'user', content: validationPrompt },
+        ],
+        max_tokens: 5,
+        temperature: 0,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+      }
+    );
+    
+    const validationText = validationRes.data.choices?.[0]?.message?.content?.trim().toUpperCase();
+    if (!validationText || !validationText.startsWith('YA')) {
+      return res.status(200).json({ 
+        error: 'Produk tidak sesuai ketentuan. Hanya produk pakan limbah pertanian atau kelautan yang diperbolehkan.',
+        isValid: false 
+      });
+    }
+
+    res.status(200).json({ 
+      message: 'Produk sesuai ketentuan.',
+      isValid: true 
+    });
+  } catch (error) {
+    console.error("Validation API error:", error.message);
+    res.status(500).json({ 
+      error: "Gagal memvalidasi produk",
+      isValid: false 
+    });
+  }
+};
+
 exports.handleEnhanceImage = async (req, res) => {
   try {
     const file = req.file;
