@@ -16,102 +16,102 @@ exports.handleChat = async (req, res) => {
     const productKeywords = {
       // Direct product requests
       direct: ['produk', 'pakan', 'rekomendasi', 'saran', 'cari', 'temukan', 'butuh', 'ingin beli', 'mau beli', 'beli'],
-      
+
       // Animal types
       animals: ['ayam', 'bebek', 'sapi', 'kambing', 'domba', 'ikan', 'lele', 'gurame', 'nila', 'udang', 'ternak', 'unggas'],
-      
+
       // Product categories
       categories: ['ruminansia', 'non-ruminansia', 'akuakultur', 'pelet', 'fermentasi', 'serbuk', 'granul'],
-      
+
       // Specific needs
       needs: ['pertumbuhan', 'gemuk', 'sehat', 'produksi telur', 'daging', 'susu', 'pemeliharaan'],
-      
+
       // Price and budget
       price: ['harga', 'murah', 'mahal', 'budget', 'hemat', 'efisien', 'biaya'],
-      
+
       // Quality and performance
       quality: ['bagus', 'terbaik', 'berkualitas', 'premium', 'standar', 'hasil', 'efektif']
     };
 
     // Check if user is asking for product recommendations with more sophisticated logic
     const userMessageLower = userMessage.toLowerCase();
-    
+
     // Check for direct product requests
-    const hasDirectRequest = productKeywords.direct.some(keyword => 
+    const hasDirectRequest = productKeywords.direct.some(keyword =>
       userMessageLower.includes(keyword)
     );
-    
+
     // Check for animal mentions
-    const hasAnimalMention = productKeywords.animals.some(keyword => 
+    const hasAnimalMention = productKeywords.animals.some(keyword =>
       userMessageLower.includes(keyword)
     );
-    
+
     // Check for category mentions
-    const hasCategoryMention = productKeywords.categories.some(keyword => 
+    const hasCategoryMention = productKeywords.categories.some(keyword =>
       userMessageLower.includes(keyword)
     );
-    
+
     // Check for specific needs
-    const hasSpecificNeed = productKeywords.needs.some(keyword => 
+    const hasSpecificNeed = productKeywords.needs.some(keyword =>
       userMessageLower.includes(keyword)
     );
-    
+
     // Check for price-related queries
-    const hasPriceQuery = productKeywords.price.some(keyword => 
+    const hasPriceQuery = productKeywords.price.some(keyword =>
       userMessageLower.includes(keyword)
     );
 
     // Determine if this is a product request
-    const isProductRequest = hasDirectRequest || 
-                           (hasAnimalMention && (hasSpecificNeed || hasCategoryMention)) ||
-                           (hasCategoryMention && hasSpecificNeed) ||
-                           (hasPriceQuery && hasAnimalMention);
+    const isProductRequest = hasDirectRequest ||
+      (hasAnimalMention && (hasSpecificNeed || hasCategoryMention)) ||
+      (hasCategoryMention && hasSpecificNeed) ||
+      (hasPriceQuery && hasAnimalMention);
 
     let products = [];
     let productContext = "";
-    
+
     if (isProductRequest) {
       // Build more sophisticated search query
       const searchTerms = [];
-      
+
       // Extract animal types mentioned
-      const mentionedAnimals = productKeywords.animals.filter(animal => 
+      const mentionedAnimals = productKeywords.animals.filter(animal =>
         userMessageLower.includes(animal)
       );
-      
+
       // Extract categories mentioned
-      const mentionedCategories = productKeywords.categories.filter(category => 
+      const mentionedCategories = productKeywords.categories.filter(category =>
         userMessageLower.includes(category)
       );
-      
+
       // Extract needs mentioned
-      const mentionedNeeds = productKeywords.needs.filter(need => 
+      const mentionedNeeds = productKeywords.needs.filter(need =>
         userMessageLower.includes(need)
       );
 
       // Build search query based on context
       let query = {};
-      
+
       if (mentionedAnimals.length > 0 || mentionedCategories.length > 0) {
         // Search by category and animal type
         const categoryQueries = [];
-        
+
         if (mentionedAnimals.includes('ayam') || mentionedAnimals.includes('bebek') || mentionedAnimals.includes('unggas')) {
           categoryQueries.push({ categoryOptions: { $regex: 'non-ruminansia', $options: 'i' } });
         }
-        
+
         if (mentionedAnimals.includes('sapi') || mentionedAnimals.includes('kambing') || mentionedAnimals.includes('domba')) {
           categoryQueries.push({ categoryOptions: { $regex: 'ruminansia', $options: 'i' } });
         }
-        
-        if (mentionedAnimals.includes('ikan') || mentionedAnimals.includes('lele') || mentionedAnimals.includes('gurame') || 
-            mentionedAnimals.includes('nila') || mentionedAnimals.includes('udang')) {
+
+        if (mentionedAnimals.includes('ikan') || mentionedAnimals.includes('lele') || mentionedAnimals.includes('gurame') ||
+          mentionedAnimals.includes('nila') || mentionedAnimals.includes('udang')) {
           categoryQueries.push({ categoryOptions: { $regex: 'akuakultur', $options: 'i' } });
         }
-        
+
         if (mentionedCategories.length > 0) {
           mentionedCategories.forEach(category => {
-            categoryQueries.push({ 
+            categoryQueries.push({
               $or: [
                 { categoryOptions: { $regex: category, $options: 'i' } },
                 { fisikOptions: { $regex: category, $options: 'i' } }
@@ -119,7 +119,7 @@ exports.handleChat = async (req, res) => {
             });
           });
         }
-        
+
         if (categoryQueries.length > 0) {
           query.$or = categoryQueries;
         }
@@ -136,20 +136,20 @@ exports.handleChat = async (req, res) => {
           ];
         }
       }
-      
+
       // Execute search
       if (Object.keys(query).length > 0) {
         products = await Product.find(query).limit(3);
       }
-      
+
       // Build context for AI
       if (products.length > 0) {
         const animalContext = mentionedAnimals.length > 0 ? `untuk ${mentionedAnimals.join(', ')}` : '';
         const needContext = mentionedNeeds.length > 0 ? `dengan fokus pada ${mentionedNeeds.join(', ')}` : '';
         const priceContext = hasPriceQuery ? 'dengan pertimbangan harga yang sesuai' : '';
-        
+
         productContext = `Saya menemukan ${products.length} produk yang mungkin sesuai dengan permintaan Anda${animalContext}${needContext}${priceContext}. Berikut adalah rekomendasi produk:`;
-        
+
         // Add detailed product information for AI context
         const productDetails = products.map(product => `
 Produk: ${product.name}
@@ -162,14 +162,14 @@ Rating: ${product.rating || 0}/5
 Deskripsi: ${product.description}
 Varian Berat & Harga: ${product.weights.map(w => `${w.value}: Rp${w.price.toLocaleString()}`).join(', ')}
         `).join('\n');
-        
+
         productContext += `\n\n**DETAIL PRODUK YANG TERSEDIA:**\n${productDetails}`;
       } else if (isProductRequest) {
         // No products found but user asked for products
         const animalContext = mentionedAnimals.length > 0 ? `untuk ${mentionedAnimals.join(', ')}` : '';
         const needContext = mentionedNeeds.length > 0 ? `dengan kebutuhan ${mentionedNeeds.join(', ')}` : '';
         const categoryContext = mentionedCategories.length > 0 ? `dalam kategori ${mentionedCategories.join(', ')}` : '';
-        
+
         productContext = `Maaf, saat ini belum ada produk yang tersedia${animalContext}${needContext}${categoryContext} di toko AgroMarFeed. Silakan coba kata kunci lain atau lihat produk yang tersedia di katalog kami.`;
       }
     }
@@ -287,7 +287,9 @@ Contoh struktur yang baik:
 - Keunggulan dibanding pakan lain
 Namun jangan selalu begitu stukturnya, buat variasi yang berbeda setiap generate.
 Jangan terlalu banyak spasi kosong. dan /n berlebih.
-Kalau deskripsi yang diberikan bukan merupakan deskripsi produk dari Produk Limbah Pertanian maupun marine, maka bilang saja Sepertinya itu bukan produk limbah untuk pakan, mohon masukkan deskripsi yang benar. Tapi kalau sudah mendekati (seperti menyebutkan nama hewannya dan limbah) maka tetap jawab saja`.trim(),
+Kalau deskripsi yang diberikan bukan merupakan deskripsi produk dari Produk Limbah Pertanian maupun marine, maka bilang saja Sepertinya itu bukan produk limbah untuk pakan, mohon masukkan deskripsi yang benar. Tapi kalau sudah mendekati (seperti menyebutkan nama hewannya dan limbah) maka tetap jawab saja
+
+PENTING: Jangan gunakan simbol markdown seperti ** atau __ atau # atau * untuk formatting. Gunakan teks plain saja tanpa simbol-simbol formatting. Hanya gunakan ** untuk bagian "Rating:", "Hasil Review:", dan "Saran Perbaikan:" saja sebagai header.`.trim(),
           },
           {
             role: "user",
@@ -315,9 +317,9 @@ exports.handleValidation = async (req, res) => {
 
   try {
     if (!name || !description) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: 'Nama produk dan deskripsi wajib diisi.',
-        isValid: false 
+        isValid: false
       });
     }
 
@@ -342,24 +344,24 @@ exports.handleValidation = async (req, res) => {
         },
       }
     );
-    
+
     const validationText = validationRes.data.choices?.[0]?.message?.content?.trim().toUpperCase();
     if (!validationText || !validationText.startsWith('YA')) {
-      return res.status(200).json({ 
+      return res.status(200).json({
         error: 'Produk tidak sesuai ketentuan. Hanya produk pakan limbah pertanian atau kelautan yang diperbolehkan.',
-        isValid: false 
+        isValid: false
       });
     }
 
-    res.status(200).json({ 
+    res.status(200).json({
       message: 'Produk sesuai ketentuan.',
-      isValid: true 
+      isValid: true
     });
   } catch (error) {
     console.error("Validation API error:", error.message);
-    res.status(500).json({ 
+    res.status(500).json({
       error: "Gagal memvalidasi produk",
-      isValid: false 
+      isValid: false
     });
   }
 };
@@ -397,7 +399,7 @@ exports.handleEnhanceImage = async (req, res) => {
     );
     const validationText = validationRes.data.choices?.[0]?.message?.content?.trim().toUpperCase();
     if (!validationText || !validationText.startsWith('YA')) {
-      return res.status(400).json({ error: 'Produk tidak sesuai ketentuan. Hanya produk pakan limbah pertanian atau kelautan yang diperbolehkan.' });
+      return res.status(400).json('Produk tidak sesuai ketentuan. Hanya produk pakan limbah pertanian atau kelautan yang diperbolehkan.');
     }
 
     // 2. Image edit with OpenAI SDK
