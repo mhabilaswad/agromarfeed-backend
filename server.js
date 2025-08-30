@@ -38,7 +38,7 @@ if (!fs.existsSync(uploadsDir)) {
 
 // Middleware
 app.use(cors({ 
-  origin: [ process.env.FRONTEND_URL, 'https://agromarfeed.vercel.app', 'http://localhost:3000'],
+  origin: [ process.env.FRONTEND_URL, 'https://agromarfeed.com', 'http://localhost:3000'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'ngrok-skip-browser-warning', 'Cookie'],
