@@ -324,7 +324,7 @@ exports.handleValidation = async (req, res) => {
     }
 
     // Validate product type using OpenAI
-    const validationPrompt = `Apakah produk berikut ini merupakan produk pakan ternak yang benar-benar berbasis limbah pertanian atau limbah kelautan (bukan pakan komersial biasa, bukan makanan manusia, bukan produk olahan lain)?\n\nNama Produk: ${name}\nDeskripsi Produk: ${description}\n\nJawab hanya dengan salah satu kata berikut: "YA" jika benar produk limbah pertanian/kelautan untuk pakan ternak, atau "TIDAK" jika bukan.`;
+    const validationPrompt = `Apakah produk berikut ini merupakan produk pakan ternak yang benar-benar berbasis limbah pertanian atau limbah kelautan (bukan pakan komersial biasa, bukan makanan manusia, bukan produk olahan lain)? produk tidak harus memiliki kata "limbah" di dalamnya. \n\nNama Produk: ${name}\nDeskripsi Produk: ${description}\n\nJawab hanya dengan salah satu kata berikut: "YA" jika benar produk limbah pertanian/kelautan untuk pakan ternak, atau "TIDAK" jika bukan.`;
 
     const validationRes = await axios.post(
       'https://api.openai.com/v1/chat/completions',
@@ -378,7 +378,7 @@ exports.handleEnhanceImage = async (req, res) => {
     }
 
     // 1. Validate product type using OpenAI
-    const validationPrompt = `Apakah produk berikut ini merupakan produk pakan ternak yang benar-benar berbasis limbah pertanian atau limbah kelautan (bukan pakan komersial biasa, bukan makanan manusia, bukan produk olahan lain)?\n\nNama Produk: ${name}\nDeskripsi Produk: ${description}\n\nJawab hanya dengan salah satu kata berikut: "YA" jika benar produk limbah pertanian/kelautan untuk pakan ternak, atau "TIDAK" jika bukan.`;
+    const validationPrompt = `Apakah produk berikut ini merupakan produk pakan ternak yang benar-benar berbasis limbah pertanian atau limbah kelautan (bukan pakan komersial biasa, bukan makanan manusia, bukan produk olahan lain)? produk tidak harus memiliki kata "limbah" di dalamnya. \n\nNama Produk: ${name}\nDeskripsi Produk: ${description}\n\nJawab hanya dengan salah satu kata berikut: "YA" jika benar produk limbah pertanian/kelautan untuk pakan ternak, atau "TIDAK" jika bukan.`;
     const validationRes = await axios.post(
       'https://api.openai.com/v1/chat/completions',
       {
